@@ -76,6 +76,27 @@
       0% { top: 5%; opacity: 0.8; }
       100% { top: 95%; opacity: 1; }
     }
+    .focus-hint {
+      position: absolute; bottom: 10px; left: 0; right: 0;
+      text-align: center; font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.6);
+      pointer-events: none;
+      letter-spacing: 0.5px;
+    }
+    .focus-ring {
+      position: absolute;
+      width: 60px; height: 60px;
+      border: 2px solid #fbbf24;
+      border-radius: 8px;
+      pointer-events: none;
+      display: none;
+      transform: translate(-50%, -50%);
+      animation: focus-flash 0.4s ease-out;
+    }
+    @keyframes focus-flash {
+      0%   { opacity: 1; transform: translate(-50%, -50%) scale(1.3); }
+      100% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); }
+    }
     .progress-panel {
       background: var(--panel);
       padding: 20px; border-radius: 16px;
@@ -137,6 +158,8 @@
       <video id="video" autoplay playsinline muted></video>
       <div class="overlay">
         <div class="scan-line" id="scan-line"></div>
+        <div class="focus-hint" id="focus-hint">👆 タップでフォーカス</div>
+        <div class="focus-ring" id="focus-ring"></div>
       </div>
       <canvas id="canvas"></canvas>
     </div>
@@ -166,6 +189,9 @@
     const blocksEl = document.getElementById("blocks");
     const statusEl = document.getElementById("status");
     const btnStart = document.getElementById("btn-start");
+    const focusRing = document.getElementById("focus-ring");
+    const focusHint = document.getElementById("focus-hint");
+    let activeStream = null;
     
     let scanning = false;
     let expectedPages = 0;
@@ -181,9 +207,17 @@
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
           throw new Error("カメラAPIがブロックされています。\nSafari(iOS)等の仕様により、カメラ機能は「HTTPS環境」または「localhost」でしか使用できません。ローカルネットワーク(http://192.168...)からアクセスしている場合は、ngrok等のHTTPSトンネルを使用するか、GitHub Pages等にアップロードしてください。");
         }
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 } } 
-        });
+        // 高解像度＋continuousフォーカスで起動
+        const constraints = { 
+          video: {
+            facingMode: "environment",
+            width:  { ideal: 1920 },
+            height: { ideal: 1080 },
+            advanced: [{ focusMode: "continuous" }]
+          }
+        };
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        activeStream = stream;
         video.srcObject = stream;
         video.setAttribute("playsinline", "true");
         video.setAttribute("autoplay", "true");
@@ -196,6 +230,37 @@
             alert("Video再生エラー: " + e.message + "\n画面を一度タップしてみてください。");
           });
         }
+
+        // タップでフォーカス（pointOfInterest）
+        video.addEventListener("click", async (e) => {
+          if (!activeStream) return;
+          const track = activeStream.getVideoTracks()[0];
+          if (!track) return;
+          const caps = track.getCapabilities ? track.getCapabilities() : {};
+          const rect = video.getBoundingClientRect();
+          const x = (e.clientX - rect.left) / rect.width;
+          const y = (e.clientY - rect.top) / rect.height;
+
+          // フォーカスリングをタップ位置に表示
+          focusRing.style.left = (e.clientX - rect.left) + "px";
+          focusRing.style.top  = (e.clientY - rect.top)  + "px";
+          focusRing.style.display = "block";
+          focusRing.style.animation = "none";
+          void focusRing.offsetWidth; // reflow
+          focusRing.style.animation = "focus-flash 0.4s ease-out";
+          setTimeout(() => { focusRing.style.display = "none"; }, 800);
+
+          try {
+            const advanced = [{ focusMode: "single-shot" }];
+            if (caps.pointOfInterest) advanced[0].pointOfInterest = { x, y };
+            await track.applyConstraints({ advanced });
+          } catch (_) {
+            // デバイスが非対応でも無視
+          }
+        });
+
+        // ヒントを3秒後に非表示
+        setTimeout(() => { focusHint.style.opacity = "0"; focusHint.style.transition = "opacity 1s"; }, 3000);
         
         requestAnimationFrame(tick);
         scanning = true;
