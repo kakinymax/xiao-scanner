@@ -222,10 +222,15 @@
     }
 
     // メインループ
+    const scanLine = document.getElementById("scan-line");
+    function setScanColor(color) {
+      scanLine.style.background = color;
+      scanLine.style.boxShadow = `0 0 20px ${color}`;
+    }
+
     function tick() {
       if (!scanning) return;
       if (video.readyState === video.HAVE_ENOUGH_DATA && !isComplete) {
-        // 画質調整
         canvas.width = Math.min(video.videoWidth, 600);
         canvas.height = canvas.width * (video.videoHeight / video.videoWidth);
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -235,31 +240,33 @@
           inversionAttempts: "attemptBoth",
         });
 
-        if (code && code.binaryData && code.binaryData.length >= 2) {
+        if (!code) {
+          // QR自体を認識できていない
+          setScanColor("var(--accent)"); // 緑
+          if (!statusEl.innerText.includes("/")) statusEl.innerText = "読み取り中... 📱";
+        } else if (!code.binaryData || code.binaryData.length < 2) {
+          // QRは見えているがバイナリデータが無い（テキストQR等）
+          setScanColor("#f59e0b"); // 黄色
+          statusEl.innerText = "⚠️ QR検出：バイナリ属性なし";
+        } else {
           let page = code.binaryData[0];
           let total = code.binaryData[1];
           let chunk = Array.from(code.binaryData.slice(2));
-          
-          if (total > 0 && total < 50) {
+
+          if (total === 0 || total >= 50) {
+            setScanColor("#f59e0b"); // 黄色
+            statusEl.innerText = `⚠️ QR検出：page=${page} total=${total} (不正)`;
+          } else {
+            // 正しいXIAO形式
+            setScanColor("#34d399"); // 明るい緑
             initBlocks(total);
             if (page < total && !receivedPayloads[page]) {
-              // 初めて取得したページ
               receivedPayloads[page] = chunk;
               let el = document.getElementById("block-" + page);
               if (el) el.classList.add("active");
-              
               let count = receivedPayloads.filter(x => x !== null).length;
-              statusEl.innerText = `${count} / ${total} ページ完了`;
-              
-              document.getElementById("scan-line").style.boxShadow = "0 0 30px #34d399";
-              setTimeout(() => { 
-                document.getElementById("scan-line").style.boxShadow = "0 0 15px var(--accent)"; 
-              }, 100);
-
-              if (count === total) {
-                isComplete = true;
-                processComplete();
-              }
+              statusEl.innerText = `✅ ${count} / ${total} ページ完了`;
+              if (count === total) { isComplete = true; processComplete(); }
             }
           }
         }
