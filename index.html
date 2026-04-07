@@ -2,14 +2,14 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>XIAO ENV Data Scanner</title>
-  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta name="viewport" content="w
+  <title>XIAO ENV Data Scanner</ti
+  <script src="https://cdn.jsdeliv
+  <script src="https://cdn.jsdeliv
   <style>
     :root {
       --bg: #0f172a;
-      --panel: rgba(30, 41, 59, 0.8);
+      --panel: rgba(30, 41, 59, 0
       --accent: #10b981;
       --text: #f8fafc;
     }
@@ -17,17 +17,17 @@
       margin: 0; padding: 0;
       background-color: var(--bg);
       color: var(--text);
-      font-family: 'Segoe UI', -apple-system, sans-serif;
-      display: flex; flex-direction: column;
+      font-family: 'Segoe UI', -ap
+      display: flex; flex-directio
       align-items: center; 
       min-height: 100vh;
       min-height: 100dvh;
-      background: radial-gradient(circle at top, #1e293b, var(--bg));
+      background: radial-gradient(
     }
     .container {
-      width: 100%; max-width: 450px;
-      padding: 30px 20px; box-sizing: border-box;
-      display: flex; flex-direction: column; gap: 20px;
+      width: 100%; max-width: 450p
+      padding: 30px 20px; box-sizi
+      display: flex; flex-directio
       z-index: 10;
       margin: auto;
     }
@@ -35,51 +35,51 @@
       text-align: center;
     }
     .header h1 {
-      margin: 0; font-size: 1.6rem;
-      background: linear-gradient(to right, #34d399, #3b82f6);
-      -webkit-background-clip: text;
+      margin: 0; font-size: 1.6rem
+      background: linear-gradient(
+      -webkit-background-clip: tex
       background-clip: text;
-      -webkit-text-fill-color: transparent;
+      -webkit-text-fill-color: tra
       letter-spacing: 1px;
     }
     .header p {
-      color: #94a3b8; font-size: 0.9rem; margin-top: 5px;
+      color: #94a3b8; font-size: 
     }
     .scanner-box {
       position: relative;
-      width: 100%; aspect-ratio: 1;
+      width: 100%; aspect-ratio: 1
       background: #000;
       border-radius: 20px;
       overflow: hidden;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 10px 40px rgb
+      border: 1px solid rgba(255,
     }
     video {
       width: 100%; height: 100%;
       object-fit: cover;
     }
     .overlay {
-      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-      box-shadow: inset 0 0 0 4px rgba(16, 185, 129, 0.4);
+      position: absolute; top: 0; 
+      box-shadow: inset 0 0 0 4px 
       border-radius: 20px;
       pointer-events: none;
-      display: flex; align-items: center; justify-content: center;
+      display: flex; align-items: 
     }
     .scan-line {
       width: 90%; height: 2px;
       background: var(--accent);
-      box-shadow: 0 0 15px var(--accent);
-      animation: scan 2s linear infinite alternate;
+      box-shadow: 0 0 15px var(--a
+      animation: scan 2s linear in
       position: absolute;
     }
     @keyframes scan {
-      0% { top: 5%; opacity: 0.8; }
-      100% { top: 95%; opacity: 1; }
+      0% { top: 5%; opacity: 0.8; 
+      100% { top: 95%; opacity: 1;
     }
     .focus-hint {
-      position: absolute; bottom: 10px; left: 0; right: 0;
-      text-align: center; font-size: 0.75rem;
-      color: rgba(255, 255, 255, 0.6);
+      position: absolute; bottom: 
+      text-align: center; font-siz
+      color: rgba(255, 255, 255, 
       pointer-events: none;
       letter-spacing: 0.5px;
     }
@@ -90,49 +90,58 @@
       border-radius: 8px;
       pointer-events: none;
       display: none;
-      transform: translate(-50%, -50%);
-      animation: focus-flash 0.4s ease-out;
+      transform: translate(-50%, -
+      animation: focus-flash 0.4s 
     }
     @keyframes focus-flash {
-      0%   { opacity: 1; transform: translate(-50%, -50%) scale(1.3); }
-      100% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); }
+      0%   { opacity: 1; transform
+      100% { opacity: 0.8; transfo
     }
     .progress-panel {
       background: var(--panel);
-      padding: 20px; border-radius: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 20px; border-radius
+      border: 1px solid rgba(255,
       backdrop-filter: blur(10px);
     }
     .progress-text {
-      display: flex; justify-content: space-between;
-      margin-bottom: 15px; font-weight: bold; font-size: 0.95rem;
+      display: flex; justify-conte
+      margin-bottom: 15px; font-we
     }
     .blocks {
-      display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+      display: flex; gap: 6px; fle
     }
     .block {
-      flex: 1; height: 12px; min-width: 15px; max-width: 30px;
-      background: rgba(255, 255, 255, 0.1);
+      flex: 1; height: 12px; min-w
+      background: rgba(255, 255, 
       border-radius: 4px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.3s cubic-b
     }
     .block.active {
       background: var(--accent);
-      box-shadow: 0 0 10px var(--accent);
+      box-shadow: 0 0 10px var(--a
       transform: scale(1.1);
     }
-    button {
-      background: linear-gradient(135deg, #10b981, #059669);
-      color: #fff;
-      border: none; padding: 15px 20px;
-      border-radius: 12px; font-weight: bold;
-      font-size: 1.1rem; cursor: pointer;
-      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
-      transition: transform 0.1s, box-shadow 0.2s;
-      width: 100%; letter-spacing: 0.5px;
+    .btn-group {
+      display: flex; gap: 10px; wi
     }
-    button:active { transform: scale(0.97); }
-    button:disabled { background: #475569; color: #94a3b8; box-shadow: none; cursor:not-allowed; }
+    .btn-group button {
+      flex: 1; padding: 15px 10px;
+    }
+    #btn-ble {
+      background: linear-gradient(
+    }
+    button {
+      background: linear-gradient(
+      color: #fff;
+      border: none; padding: 15px 
+      border-radius: 12px; font-we
+      font-size: 1.1rem; cursor: p
+      box-shadow: 0 4px 15px rgba
+      transition: transform 0.1s, 
+      width: 100%; letter-spacing:
+    }
+    button:active { transform: sca
+    button:disabled { background: 
     #canvas { display: none; }
     
     #chart-container {
@@ -142,7 +151,7 @@
       padding: 15px;
       border-radius: 16px;
       box-sizing: border-box;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255,
       backdrop-filter: blur(10px);
     }
   </style>
@@ -151,17 +160,17 @@
   <div class="container">
     <div class="header">
       <h1>XIAO ENV DECODER</h1>
-      <p>「Record video now」の画面を枠内に捉えてください</p>
+      <p>「Record video now」の画
     </div>
 
-    <div class="scanner-box" id="scanner-container">
-      <video id="video" autoplay playsinline muted></video>
+    <div class="scanner-box" id="s
+      <video id="video" autoplay p
       <div class="overlay">
-        <div class="scan-line" id="scan-line"></div>
-        <div class="focus-hint" id="focus-hint">👆 タップでフォーカス</div>
-        <div class="focus-ring" id="focus-ring"></div>
+        <div class="scan-line" id=
+        <div class="focus-hint" id
+        <div class="focus-ring" id
       </div>
-      <canvas id="canvas"></canvas>
+      <canvas id="canvas"></canvas
     </div>
 
     <div id="chart-container">
@@ -170,27 +179,32 @@
 
     <div class="progress-panel">
       <div class="progress-text">
-        <span>Capture Progress</span>
-        <span id="status">Waiting for Camera...</span>
+        <span>Capture Progress</sp
+        <span id="status">Waiting 
       </div>
-      <div class="blocks" id="blocks">
+      <div class="blocks" id="bloc
         <!-- JS Insert -->
-        <span style="font-size: 0.8rem; color: #64748b; margin: auto;">カメラを起動してください</span>
+        <span style="font-size: 0.
       </div>
     </div>
 
-    <button id="btn-start">🚀 カメラを起動</button>
+    <div class="btn-group" id="btn
+      <button id="btn-start">📷 カ
+      <button id="btn-ble">📶 BLE
+    </div>
   </div>
 
   <script>
-    const video = document.getElementById("video");
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    const blocksEl = document.getElementById("blocks");
-    const statusEl = document.getElementById("status");
-    const btnStart = document.getElementById("btn-start");
-    const focusRing = document.getElementById("focus-ring");
-    const focusHint = document.getElementById("focus-hint");
+    const video = document.getElem
+    const canvas = document.getEle
+    const ctx = canvas.getContext(
+    const blocksEl = document.getE
+    const statusEl = document.getE
+    const btnStart = document.getE
+    const btnBle = document.getEle
+    const btnWrapper = document.ge
+    const focusRing = document.get
+    const focusHint = document.get
     let activeStream = null;
     
     let scanning = false;
@@ -199,87 +213,148 @@
     let isComplete = false;
 
     // カメラ起動処理
-    btnStart.addEventListener("click", async () => {
-      if (scanning && !isComplete) return;
+    btnStart.addEventListener("cli
+      if (scanning && !isComplete)
       if (isComplete) return;
 
       try {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error("カメラAPIがブロックされています。\nSafari(iOS)等の仕様により、カメラ機能は「HTTPS環境」または「localhost」でしか使用できません。ローカルネットワーク(http://192.168...)からアクセスしている場合は、ngrok等のHTTPSトンネルを使用するか、GitHub Pages等にアップロードしてください。");
+        if (!navigator.mediaDevice
+          throw new Error("カメラA
         }
-        // 高解像度＋continuousフォーカスで起動
+        // 高解像度＋continuousフ
         const constraints = { 
           video: {
-            facingMode: "environment",
-            width:  { ideal: 1920 },
-            height: { ideal: 1080 },
-            advanced: [{ focusMode: "continuous" }]
+            facingMode: "environme
+            width:  { ideal: 1920 
+            height: { ideal: 1080 
+            advanced: [{ focusMode
           }
         };
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        const stream = await navig
         activeStream = stream;
         video.srcObject = stream;
-        video.setAttribute("playsinline", "true");
-        video.setAttribute("autoplay", "true");
-        video.setAttribute("muted", "true");
+        video.setAttribute("playsi
+        video.setAttribute("autopl
+        video.setAttribute("muted"
         video.muted = true;
         
-        let playPromise = video.play();
-        if (playPromise !== undefined) {
+        let playPromise = video.pl
+        if (playPromise !== undefi
           playPromise.catch(e => {
-            alert("Video再生エラー: " + e.message + "\n画面を一度タップしてみてください。");
+            alert("Video再生エラー
           });
         }
 
-        // タップでフォーカス（pointOfInterest）
-        video.addEventListener("click", async (e) => {
-          if (!activeStream) return;
-          const track = activeStream.getVideoTracks()[0];
+        // タップでフォーカス（poi
+        video.addEventListener("cl
+          if (!activeStream) retur
+          const track = activeStre
           if (!track) return;
-          const caps = track.getCapabilities ? track.getCapabilities() : {};
-          const rect = video.getBoundingClientRect();
-          const x = (e.clientX - rect.left) / rect.width;
-          const y = (e.clientY - rect.top) / rect.height;
+          const caps = track.getCa
+          const rect = video.getBo
+          const x = (e.clientX - r
+          const y = (e.clientY - r
 
-          // フォーカスリングをタップ位置に表示
-          focusRing.style.left = (e.clientX - rect.left) + "px";
-          focusRing.style.top  = (e.clientY - rect.top)  + "px";
-          focusRing.style.display = "block";
-          focusRing.style.animation = "none";
-          void focusRing.offsetWidth; // reflow
-          focusRing.style.animation = "focus-flash 0.4s ease-out";
-          setTimeout(() => { focusRing.style.display = "none"; }, 800);
+          // フォーカスリングをタ
+          focusRing.style.left = (
+          focusRing.style.top  = (
+          focusRing.style.display 
+          focusRing.style.animatio
+          void focusRing.offsetWid
+          focusRing.style.animatio
+          setTimeout(() => { focus
 
           try {
-            const advanced = [{ focusMode: "single-shot" }];
-            if (caps.pointOfInterest) advanced[0].pointOfInterest = { x, y };
-            await track.applyConstraints({ advanced });
+            const advanced = [{ fo
+            if (caps.pointOfIntere
+            await track.applyConst
           } catch (_) {
-            // デバイスが非対応でも無視
+            // デバイスが非対応で
           }
         });
 
         // ヒントを3秒後に非表示
-        setTimeout(() => { focusHint.style.opacity = "0"; focusHint.style.transition = "opacity 1s"; }, 3000);
+        setTimeout(() => { focusHi
         
-        requestAnimationFrame(tick);
+        requestAnimationFrame(tick
         scanning = true;
-        btnStart.innerText = "Scanning...";
+        btnStart.innerText = "Scan
         btnStart.disabled = true;
-        statusEl.innerText = "読み取り中... 📱";
+        statusEl.innerText = "読み
         blocksEl.innerHTML = "";
       } catch (err) {
-        alert("カメラへのアクセスが必要です（設定を確認してください）\n詳細: " + err.message);
+        alert("カメラへのアクセス
+      }
+    });
+
+    // BLE起動処理
+    btnBle.addEventListener("click
+      if (scanning && !isComplete)
+      if (isComplete) return;
+      
+      try {
+        const SERVICE_UUID = "4faf
+        const CHAR_RX_UUID = "beb5
+        const CHAR_TX_UUID = "beb5
+
+        statusEl.innerText = "BLE
+        const bleDevice = await na
+          filters: [{ namePrefix: 
+          optionalServices: [SERVI
+        });
+
+        statusEl.innerText = "接続
+        const server = await bleDe
+        const service = await serv
+        const rxChar = await servi
+        const txChar = await servi
+
+        // 時刻同期
+        const ts = Math.floor(Date
+        const enc = new TextEncode
+        await rxChar.writeValue(en
+        
+        statusEl.innerText = "時刻
+
+        // データ受信待機
+        await txChar.startNotifica
+        
+        let bleCompLen = 0;
+        let bleBuffer = [];
+        
+        txChar.addEventListener("c
+          const value = new Uint8A
+          
+          if (bleBuffer.length ===
+            let history_count = va
+            bleCompLen = 6 + (hist
+          }
+          
+          for (let i=0; i<value.le
+            bleBuffer.push(value[i
+          }
+          
+          statusEl.innerText = `受
+          
+          if (bleBuffer.length >= 
+            isComplete = true;
+            processComplete(new Ui
+          }
+        });
+
+      } catch(err) {
+        alert("BLE接続エラー: " + 
+        statusEl.innerText = "Wait
       }
     });
 
     function initBlocks(total) {
-      if (expectedPages === total) return;
+      if (expectedPages === total)
       expectedPages = total;
-      receivedPayloads = new Array(total).fill(null);
+      receivedPayloads = new Array
       blocksEl.innerHTML = "";
       for(let i=0; i<total; i++) {
-        let b = document.createElement("div");
+        let b = document.createEle
         b.className = "block";
         b.id = "block-" + i;
         blocksEl.appendChild(b);
@@ -287,121 +362,158 @@
     }
 
     // メインループ
-    const scanLine = document.getElementById("scan-line");
+    const scanLine = document.getE
     function setScanColor(color) {
-      scanLine.style.background = color;
-      scanLine.style.boxShadow = `0 0 20px ${color}`;
+      scanLine.style.background = 
+      scanLine.style.boxShadow = `
     }
 
     function tick() {
       if (!scanning) return;
-      if (video.readyState === video.HAVE_ENOUGH_DATA && !isComplete) {
-        canvas.width = Math.min(video.videoWidth, 600);
-        canvas.height = canvas.width * (video.videoHeight / video.videoWidth);
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      if (video.readyState === vid
+        canvas.width = Math.min(vi
+        canvas.height = canvas.wid
+        ctx.drawImage(video, 0, 0,
         
-        let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        let code = jsQR(imageData.data, imageData.width, imageData.height, {
-          inversionAttempts: "attemptBoth",
+        let imageData = ctx.getIma
+        let code = jsQR(imageData.
+          inversionAttempts: "atte
         });
 
         if (!code) {
-          // QR自体を認識できていない
-          setScanColor("var(--accent)"); // 緑
-          if (!statusEl.innerText.includes("/")) statusEl.innerText = "読み取り中... 📱";
-        } else if (!code.binaryData || code.binaryData.length < 2) {
-          // QRは見えているがバイナリデータが無い（テキストQR等）
-          setScanColor("#f59e0b"); // 黄色
-          statusEl.innerText = "⚠️ QR検出：バイナリ属性なし";
+          // QR自体を認識できてい
+          setScanColor("var(--acce
+          if (!statusEl.innerText.
+        } else if (!code.binaryDat
+          // QRは見えているがバイ
+          setScanColor("#f59e0b");
+          statusEl.innerText = "⚠️
         } else {
-          let page = code.binaryData[0];
-          let total = code.binaryData[1];
-          let chunk = Array.from(code.binaryData.slice(2));
+          let page = code.binaryDa
+          let total = code.binaryD
+          let chunk = Array.from(c
 
-          if (total === 0 || total >= 50) {
-            setScanColor("#f59e0b"); // 黄色
-            statusEl.innerText = `⚠️ QR検出：page=${page} total=${total} (不正)`;
+          if (total === 0 || total
+            setScanColor("#f59e0b"
+            statusEl.innerText = `
           } else {
             // 正しいXIAO形式
-            setScanColor("#34d399"); // 明るい緑
+            setScanColor("#34d399"
             initBlocks(total);
-            if (page < total && !receivedPayloads[page]) {
-              receivedPayloads[page] = chunk;
-              let el = document.getElementById("block-" + page);
-              if (el) el.classList.add("active");
-              let count = receivedPayloads.filter(x => x !== null).length;
-              statusEl.innerText = `✅ ${count} / ${total} ページ完了`;
-              if (count === total) { isComplete = true; processComplete(); }
+            if (page < total && !r
+              receivedPayloads[pag
+              let el = document.ge
+              if (el) el.classList
+              let count = received
+              statusEl.innerText =
+              if (count === total)
             }
           }
         }
       }
-      if (!isComplete) requestAnimationFrame(tick);
+      if (!isComplete) requestAnim
     }
 
     // 読み取り完了＆結合処理
-    function processComplete() {
+    function processComplete(direc
       scanning = false;
-      const tracks = video.srcObject.getTracks();
-      tracks.forEach(t => t.stop());
-      
-      statusEl.innerText = "🎉 結合完了！";
-      statusEl.style.color = "var(--accent)";
-      document.getElementById("scan-line").style.display = "none";
-      
-      btnStart.innerText = "💾 CSVをダウンロード";
-      btnStart.disabled = false;
-      btnStart.style.background = "linear-gradient(135deg, #3b82f6, #2563eb)";
-      
-      let allBytes = [];
-      for(let i=0; i<expectedPages; i++){
-        allBytes.push(...receivedPayloads[i]);
+      if (video.srcObject) {
+         const tracks = video.srcO
+         tracks.forEach(t => t.sto
       }
-      let comp = new Uint8Array(allBytes);
+      
+      statusEl.innerText = "🎉 結
+      statusEl.style.color = "var(
+      document.getElementById("sca
+      
+      btnWrapper.innerHTML = `<but
+      const btnDl = document.getEl
+      
+      let comp;
+      if (directBuffer) {
+        comp = directBuffer;
+      } else {
+        let allBytes = [];
+        for(let i=0; i<expectedPag
+          allBytes.push(...receive
+        }
+        comp = new Uint8Array(allB
+      }
       
       let history_count = comp[0];
       let history_head = comp[1];
-      let view = new DataView(comp.buffer);
-      let ts = view.getUint32(2, true); 
+      let view = new DataView(comp
+      let ts = view.getUint32(2, t
       
       let labels = [];
       let temp_data = [];
       let hum_data = [];
+      let di_data = [];
       
-      let csv = "Timestamp,Temperature(C),Humidity(%),DiscomfortIndex\n";
+      let csv = "Timestamp,Tempera
       let pos_t = 6;
-      let pos_h = 6 + history_count;
-      let pos_di = 6 + history_count * 2;
+      let pos_h = 6 + history_coun
+      let pos_di = 6 + history_cou
       
-      for(let i=0; i<history_count; i++) {
-        let t_raw = comp[pos_t + i];
-        let h_raw = comp[pos_h + i];
-        let di_raw = comp[pos_di + i];
+      for(let i=0; i<history_count
+        let t_raw = comp[pos_t + i
+        let h_raw = comp[pos_h + i
+        let di_raw = comp[pos_di +
         
-        let temp = (t_raw / 5.0) + 10.0;
+        let temp = (t_raw / 5.0) +
         let hum = h_raw / 2.55;
-        let di = (di_raw / 4.0) + 30.0;
+        let di = (di_raw / 4.0) + 
         
-        let agoMins = (history_count - 1 - i) * 12;
-        let pTime = new Date((ts - agoMins * 60) * 1000);
+        let agoMins = (history_cou
+        let pTime = new Date((ts -
         
-        let pad = n => ('0'+n).slice(-2);
-        let timeStr = `${pTime.getFullYear()}-${pad(pTime.getMonth()+1)}-${pad(pTime.getDate())} ${pad(pTime.getHours())}:${pad(pTime.getMinutes())}:${pad(pTime.getSeconds())}`;
-        let shortTimeStr = `${pad(pTime.getHours())}:${pad(pTime.getMinutes())}`;
+        let pad = n => ('0'+n).sli
+        let timeStr = `${pTime.get
+        let shortTimeStr = `${pad(
         
         labels.push(shortTimeStr);
-        temp_data.push(temp.toFixed(1));
-        hum_data.push(hum.toFixed(1));
+        temp_data.push(temp.toFixe
+        hum_data.push(hum.toFixed(
+        di_data.push(di);
         
-        csv += `${timeStr},${temp.toFixed(1)},${hum.toFixed(1)},${di.toFixed(1)}\n`;
+        csv += `${timeStr},${temp.
       }
       
       // UIの切り替え
-      document.getElementById("scanner-container").style.display = "none";
-      document.getElementById("chart-container").style.display = "block";
+      document.getElementById("sca
+      document.getElementById("cha
+      
+      // DI背景描画用のカスタムプ
+      const diBackgroundPlugin = {
+        id: 'diBackground',
+        beforeDatasetsDraw: (chart
+          const { ctx, chartArea, 
+          ctx.save();
+          
+          for (let i = 0; i < di_d
+            const diValue = di_dat
+            let color = 'rgba(0, 0
+            
+            // 快適さの色分け
+            if (diValue >= 85) col
+            else if (diValue >= 80
+            else if (diValue >= 75
+            else if (diValue < 55)
+            // 55〜75は快適ゾーン
+            
+            if (color !== 'rgba(0,
+              const startX = x.get
+              const endX = x.getPi
+              ctx.fillStyle = colo
+              ctx.fillRect(startX,
+            }
+          }
+          ctx.restore();
+        }
+      };
       
       // グラフ描画
-      const ctxChart = document.getElementById("chart").getContext("2d");
+      const ctxChart = document.ge
       new Chart(ctxChart, {
         type: 'line',
         data: {
@@ -410,8 +522,8 @@
             {
               label: '温度 (°C)',
               data: temp_data,
-              borderColor: '#10b981',
-              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              borderColor: '#10b98
+              backgroundColor: 'rg
               yAxisID: 'y',
               tension: 0.3,
               fill: true
@@ -419,8 +531,8 @@
             {
               label: '湿度 (%)',
               data: hum_data,
-              borderColor: '#3b82f6',
-              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              borderColor: '#3b82f
+              backgroundColor: 'rg
               yAxisID: 'y1',
               tension: 0.3,
               fill: true
@@ -429,31 +541,32 @@
         },
         options: {
           responsive: true,
-          interaction: { mode: 'index', intersect: false },
+          interaction: { mode: 'in
           scales: {
-            x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+            x: { ticks: { color: '
             y: {
-              type: 'linear', display: true, position: 'left',
-              ticks: { color: '#10b981' }, grid: { color: 'rgba(255,255,255,0.1)' }
+              type: 'linear', disp
+              ticks: { color: '#10
             },
             y1: {
-              type: 'linear', display: true, position: 'right',
-              ticks: { color: '#3b82f6' }, grid: { drawOnChartArea: false }
+              type: 'linear', disp
+              ticks: { color: '#3b
             }
           },
           plugins: {
-            legend: { labels: { color: '#f8fafc' } }
+            legend: { labels: { co
           }
-        }
+        },
+        plugins: [diBackgroundPlug
       });
       
-      let blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      let url = URL.createObjectURL(blob);
+      let blob = new Blob([csv], {
+      let url = URL.createObjectUR
       
-      btnStart.onclick = () => {
-        let a = document.createElement("a");
+      btnDl.onclick = () => {
+        let a = document.createEle
         a.href = url;
-        a.download = `env_history_${ts}.csv`;
+        a.download = `env_history_
         a.click();
       };
     }
