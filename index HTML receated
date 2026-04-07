@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XIAO ENV Data Scanner</title>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: rgba(30, 41, 59, 0.8);
+      --accent: #10b981;
+      --text: #f8fafc;
+    }
+    body {
+      margin: 0; padding: 0;
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', -apple-system, sans-serif;
+      display: flex; flex-direction: column;
+      align-items: center; 
+      min-height: 100vh;
+      min-height: 100dvh;
+      background: radial-gradient(circle at top, #1e293b, var(--bg));
+    }
+    .container {
+      width: 100%; max-width: 450px;
+      padding: 30px 20px; box-sizing: border-box;
+      display: flex; flex-direction: column; gap: 20px;
+      z-index: 10; margin: auto;
+    }
+    .header { text-align: center; }
+    .header h1 {
+      margin: 0; font-size: 1.6rem;
+      background: linear-gradient(to right, #34d399, #3b82f6);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 1px;
+    }
+    .header p { color: #94a3b8; font-size: 0.9rem; margin-top: 5px; }
+
+    /* フェーズ切り替え用スタイル */
+    .view-section { display: none; width: 100%; }
+    .view-section.active { display: block; }
+
+    .scanner-box {
+      position: relative; width: 100%; aspect-ratio: 1;
+      background: #000; border-radius: 20px; overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    video { width: 100%; height: 100%; object-fit: cover; }
+    .overlay {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      box-shadow: inset 0 0 0 4px rgba(16, 185, 129, 0.4);
+      border-radius: 20px; pointer-events: none;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .scan-line {
+      width: 90%; height: 2px; background: var(--accent);
+      box-shadow: 0 0 15px var(--accent);
+      animation: scan 2s linear infinite alternate;
+      position: absolute;
+    }
+    @keyframes scan { 0% { top: 5%; opacity: 0.8; } 100% { top: 95%; opacity: 1; } }
+    .focus-hint {
+      position: absolute; bottom: 10px; left: 0; right: 0;
+      text-align: center; font-size: 0.75rem; color: rgba(255, 255, 255, 0.6);
+    }
+    .focus-ring {
+      position: absolute; width: 60px; height: 60px;
+      border: 2px solid #fbbf24; border-radius: 8px;
+      pointer-events: none; display: none;
+      transform: translate(-50%, -50%);
+      animation: focus-flash 0.4s ease-out;
+    }
+    @keyframes focus-flash {
+      0% { opacity: 1; transform: translate(-50%, -50%) scale(1.3); }
+      100% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); }
+    }
+    .progress-panel {
+      background: var(--panel); padding: 20px; border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px); margin-top: 15px;
+    }
+    .progress-text { display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: bold; font-size: 0.95rem; }
+    .blocks { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+    .block { flex: 1; height: 12px; min-width: 15px; max-width: 30px; background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
+    .block.active { background: var(--accent); box-shadow: 0 0 10px var(--accent); transform: scale(1.1); }
+    
+    button {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff; border: none; padding: 15px 20px;
+      border-radius: 12px; font-weight: bold; font-size: 1.1rem; cursor: pointer;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+      transition: transform 0.1s, box-shadow 0.2s; width: 100%;
+    }
+    button:active { transform: scale(0.97); }
+    button:disabled { background: #475569; color: #94a3b8; cursor:not-allowed; }
+    
+    #canvas { display: none; }
+    #chart-container { width: 100%; background: var(--panel); padding: 15px; border-radius: 16px; box-sizing: border-box; border: 1px solid rgba(255, 255, 255, 0.1); }
+    
+    .btn-group-vertical { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>XIAO ENV DECODER</h1>
+      <p id="sub-header">取得モードを選択してください</p>
+    </div>
+
+    <div id="view-setup" class="view-section active">
+      <div class="btn-group-vertical">
+        <button id="btn-start">📷 カメラでQRスキャン</button>
+        <button id="btn-ble" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">📶 BLEで通常同期</button>
+        <button id="btn-ai-log" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); font-size: 0.9rem;">🤖 全AIログを取得 (1ヶ月分)</button>
+      </div>
+    </div>
+
+    <div id="view-active" class="view-section">
+      <div class="scanner-box" id="scanner-container">
+        <video id="video" autoplay playsinline muted></video>
+        <div class="overlay">
+          <div class="scan-line" id="scan-line"></div>
+          <div class="focus-hint" id="focus-hint">👆 タップでフォーカス</div>
+          <div class="focus-ring" id="focus-ring"></div>
+        </div>
+        <canvas id="canvas"></canvas>
+      </div>
+      <div class="progress-panel">
+        <div class="progress-text"><span id="status">準備中...</span></div>
+        <div class="blocks" id="blocks"></div>
+      </div>
+      <button onclick="location.reload()" style="background: #475569; margin-top: 15px; font-size: 0.9rem;">✖ キャンセルして戻る</button>
+    </div>
+
+    <div id="view-result" class="view-section">
+      <div id="chart-container"><canvas id="chart"></canvas></div>
+      <div id="download-area" style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;"></div>
+      <button onclick="location.reload()" style="background: #1e293b; margin-top: 20px; border: 1px solid #475569;">🔄 最初に戻る</button>
+    </div>
+  </div>
+
+  <script>
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const blocksEl = document.getElementById("blocks");
+    const statusEl = document.getElementById("status");
+    const subHeader = document.getElementById("sub-header");
+    const btnStart = document.getElementById("btn-start");
+    const btnBle = document.getElementById("btn-ble");
+    const btnAiLog = document.getElementById("btn-ai-log");
+    const focusRing = document.getElementById("focus-ring");
+    const focusHint = document.getElementById("focus-hint");
+    
+    let activeStream = null, scanning = false, expectedPages = 0;
+    let receivedPayloads = [], isComplete = false, envChart = null;
+
+    function switchView(viewId, subText) {
+      document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+      const target = document.getElementById(viewId);
+      if(target) target.classList.add('active');
+      if (subText) subHeader.innerText = subText;
+    }
+
+    // カメラ起動
+    btnStart.onclick = async () => {
+      switchView('view-active', 'QRコードをスキャン中...');
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } } });
+        activeStream = stream; video.srcObject = stream;
+        video.onclick = async (e) => {
+          const track = stream.getVideoTracks()[0];
+          const rect = video.getBoundingClientRect();
+          focusRing.style.left = (e.clientX - rect.left) + "px";
+          focusRing.style.top = (e.clientY - rect.top) + "px";
+          focusRing.style.display = "block";
+          setTimeout(() => focusRing.style.display = "none", 800);
+          try { await track.applyConstraints({ advanced: [{ focusMode: "single-shot", pointOfInterest: { x: (e.clientX - rect.left)/rect.width, y: (e.clientY - rect.top)/rect.height } }] }); } catch (e) {}
+        };
+        requestAnimationFrame(tick); scanning = true;
+      } catch (err) { alert("カメラエラー: " + err.message); location.reload(); }
+    };
+
+    // BLE同期
+    btnBle.onclick = async () => {
+      switchView('view-active', 'BLEデバイスを探しています...');
+      try {
+        const bleDevice = await navigator.bluetooth.requestDevice({ filters: [{ namePrefix: "XIAO" }], optionalServices: ["4fafc201-1fb5-459e-8fcc-c5c9c331914b"] });
+        const server = await bleDevice.gatt.connect();
+        const service = await server.getPrimaryService("4fafc201-1fb5-459e-8fcc-c5c9c331914b");
+        const rxChar = await service.getCharacteristic("beb5483e-36e1-4688-b7f5-ea07361b26a8");
+        const txChar = await service.getCharacteristic("beb5483e-36e1-4688-b7f5-ea07361b26a9");
+        await rxChar.writeValue(new TextEncoder().encode(Math.floor(Date.now() / 1000).toString()));
+        await txChar.startNotifications();
+        let bleBuffer = [];
+        txChar.addEventListener("characteristicvaluechanged", (e) => {
+          const val = new Uint8Array(e.target.value.buffer);
+          for (let v of val) bleBuffer.push(v);
+          const expected = 6 + (bleBuffer[0] * 3);
+          statusEl.innerText = `受信中... ${bleBuffer.length} / ${expected} bytes`;
+          if (bleBuffer.length >= expected && !isComplete) { isComplete = true; processComplete(new Uint8Array(bleBuffer)); }
+        });
+      } catch(err) { alert("BLEエラー: " + err.message); location.reload(); }
+    };
+
+    // AIログ取得
+    btnAiLog.onclick = async () => {
+      switchView('view-active', 'AIログを取得中...');
+      try {
+        const bleDevice = await navigator.bluetooth.requestDevice({ filters: [{ namePrefix: "XIAO" }], optionalServices: ["4fafc201-1fb5-459e-8fcc-c5c9c331914b"] });
+        const server = await bleDevice.gatt.connect();
+        const service = await server.getPrimaryService("4fafc201-1fb5-459e-8fcc-c5c9c331914b");
+        const rxChar = await service.getCharacteristic("beb5483e-36e1-4688-b7f5-ea07361b26a8");
+        const txChar = await service.getCharacteristic("beb5483e-36e1-4688-b7f5-ea07361b26a9");
+        await rxChar.writeValue(new TextEncoder().encode("GET_AI_LOG"));
+        await txChar.startNotifications();
+        let aiBuffer = [];
+        txChar.addEventListener("characteristicvaluechanged", (e) => {
+          const val = new Uint8Array(e.target.value.buffer);
+          if (val.length === 3 && val[0] === 69 && val[1] === 79 && val[2] === 70) { processAILogComplete(new Uint8Array(aiBuffer)); return; }
+          for (let v of val) aiBuffer.push(v);
+          statusEl.innerText = `受信中... ${aiBuffer.length} bytes`;
+        });
+      } catch(err) { alert("AIログエラー: " + err.message); location.reload(); }
+    };
+
+    function processAILogComplete(comp) {
+      switchView('view-result', 'AIログ受信完了');
+      const dlArea = document.getElementById("download-area");
+      dlArea.innerHTML = `<button id="btn-dl-bin" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">🤖 AI用バイナリ(.bin)を保存</button>`;
+      const url = URL.createObjectURL(new Blob([comp], { type: "application/octet-stream" }));
+      document.getElementById("btn-dl-bin").onclick = () => {
+        const a = document.createElement("a"); a.href = url; a.download = `ai_log_${Date.now()}.bin`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      };
+    }
+
+    function tick() {
+      if (!scanning || isComplete) return;
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        canvas.width = 480; canvas.height = canvas.width * (video.videoHeight / video.videoWidth);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const code = jsQR(ctx.getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
+        if (code && code.binaryData && code.binaryData.length >= 2) {
+          const page = code.binaryData[0], total = code.binaryData[1];
+          if (total > 0 && total < 50) {
+            if (expectedPages !== total) { expectedPages = total; blocksEl.innerHTML = ""; for(let i=0;i<total;i++) blocksEl.innerHTML += `<div class="block" id="block-${i}"></div>`; receivedPayloads = new Array(total).fill(null); }
+            if (!receivedPayloads[page]) {
+              receivedPayloads[page] = Array.from(code.binaryData.slice(2));
+              document.getElementById("block-" + page).classList.add("active");
+              const count = receivedPayloads.filter(x => x !== null).length;
+              statusEl.innerText = `✅ ${count} / ${total} 完了`;
+              if (count === total) { isComplete = true; processComplete(); }
+            }
+          }
+        }
+      }
+      requestAnimationFrame(tick);
+    }
+
+    function processComplete(directBuffer = null) {
+      scanning = false;
+      if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+      switchView('view-result', 'データ解析完了');
+      const comp = directBuffer || new Uint8Array([].concat(...receivedPayloads));
+      const count = comp[0], ts = new DataView(comp.buffer).getUint32(2, true);
+      let csv = "Timestamp,Temp,Hum,DI\n", labels = [], t_data = [], h_data = [];
+      for(let i=0; i<count; i++) {
+        const t = (comp[6+i]/5)+10, h = comp[6+count+i]/2.55, di = (comp[6+count*2+i]/4)+30;
+        const d = new Date((ts - (count-1-i)*720)*1000);
+        const timeStr = `${d.getHours()}:${('0'+d.getMinutes()).slice(-2)}`;
+        labels.push(timeStr); t_data.push(t.toFixed(1)); h_data.push(h.toFixed(1));
+        csv += `${d.toLocaleString()},${t.toFixed(1)},${h.toFixed(1)},${di.toFixed(1)}\n`;
+      }
+      new Chart(document.getElementById("chart"), { type: 'line', data: { labels: labels, datasets: [{ label: '温度', data: t_data, borderColor: '#10b981' }, { label: '湿度', data: h_data, borderColor: '#3b82f6' }] } });
+      const dlArea = document.getElementById("download-area");
+      dlArea.innerHTML = `<button id="btn-dl">💾 CSVをダウンロード</button>`;
+      const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+      document.getElementById("btn-dl").onclick = () => {
+        const a = document.createElement("a"); a.href = url; a.download = `data_${ts}.csv`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      };
+    }
+  </script>
+</body>
+</html>
