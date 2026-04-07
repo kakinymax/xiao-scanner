@@ -213,6 +213,10 @@
       <button id="btn-start">📷 カメラ起動</button>
       <button id="btn-ble">📶 BLE同期</button>
     </div>
+    
+    <div style="margin-top: 10px; width: 100%;">
+      <button id="btn-ai-log" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); font-size: 0.9rem; padding: 10px;">🤖 全AIログを取得 (1ヶ月分)</button>
+    </div>
   </div>
 
   <script>
@@ -223,6 +227,7 @@
     const statusEl = document.getElementById("status");
     const btnStart = document.getElementById("btn-start");
     const btnBle = document.getElementById("btn-ble");
+    const btnAiLog = document.getElementById("btn-ai-log");
     const btnWrapper = document.getElementById("btn-wrapper");
     const focusRing = document.getElementById("focus-ring");
     const focusHint = document.getElementById("focus-hint");
@@ -368,6 +373,89 @@
         statusEl.innerText = "Waiting for Camera/BLE...";
       }
     });
+
+    // AIログ取得処理
+    btnAiLog.addEventListener("click", async () => {
+      if (scanning && !isComplete) return;
+      if (isComplete) return;
+      
+      try {
+        const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+        const CHAR_RX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+        const CHAR_TX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a9";
+
+        statusEl.innerText = "AIログ用: BLEを探しています...";
+        const bleDevice = await navigator.bluetooth.requestDevice({
+          filters: [{ namePrefix: "XIAO" }],
+          optionalServices: [SERVICE_UUID]
+        });
+
+        statusEl.innerText = "接続中...";
+        const server = await bleDevice.gatt.connect();
+        const service = await server.getPrimaryService(SERVICE_UUID);
+        const rxChar = await service.getCharacteristic(CHAR_RX_UUID);
+        const txChar = await service.getCharacteristic(CHAR_TX_UUID);
+
+        statusEl.innerText = "AIログ転送要求を送信中... (数分かかります。画面を閉じないでください)";
+        const enc = new TextEncoder();
+        await rxChar.writeValue(enc.encode("GET_AI_LOG"));
+        
+        await txChar.startNotifications();
+        
+        let aiBuffer = [];
+        let receiveStartTime = Date.now();
+        
+        alert("⚠️【注意】\nAIログの全量転送には数分かかります。\nスマホの画面がスリープしないように時々タップし、この画面を開いたままお待ちください。");
+
+        txChar.addEventListener("characteristicvaluechanged", (e) => {
+          const value = new Uint8Array(e.target.value.buffer);
+          
+          // 終了マーカーの判定
+          if (value.length === 3 && value[0] === 69 && value[1] === 79 && value[2] === 70) { // "EOF"
+            txChar.stopNotifications();
+            processAILogComplete(new Uint8Array(aiBuffer));
+            return;
+          }
+          if (value.length === 9 && String.fromCharCode(...value) === "NO_AI_LOG") {
+            alert("マイコン内にAIログがまだありません。（数十分稼働させてから再度お試しください）");
+            statusEl.innerText = "AIログなし";
+            txChar.stopNotifications();
+            return;
+          }
+          
+          for (let i=0; i<value.length; i++) {
+            aiBuffer.push(value[i]);
+          }
+          
+          let elapsedSec = Math.floor((Date.now() - receiveStartTime) / 1000);
+          statusEl.innerText = `AIログ受信中... ${aiBuffer.length} bytes (${elapsedSec}秒経過)`;
+        });
+
+      } catch(err) {
+        alert("AIログ転送エラー: " + err.message);
+        statusEl.innerText = "Waiting for Camera/BLE...";
+      }
+    });
+
+    function processAILogComplete(comp) {
+      statusEl.innerText = `🎉 AIログ受信完了！ (${comp.length} bytes)`;
+      statusEl.style.color = "var(--accent)";
+      
+      btnWrapper.innerHTML = `<button id="btn-dl-ai">🤖 AI用バイナリ(.bin)を保存</button>`;
+      const btnDlAi = document.getElementById("btn-dl-ai");
+      
+      // Blobを作成してダウンロード
+      let blob = new Blob([comp], { type: "application/octet-stream" });
+      let url = URL.createObjectURL(blob);
+      
+      btnDlAi.onclick = () => {
+        let a = document.createElement("a");
+        a.href = url;
+        let ts = Math.floor(Date.now() / 1000);
+        a.download = `ai_env_log_${ts}.bin`;
+        a.click();
+      };
+    }
 
     function initBlocks(total) {
       if (expectedPages === total) return;
