@@ -702,14 +702,13 @@
         options: {
           responsive: true,
           interaction: { mode: 'index', intersect: false },
-          onClick: (e) => {
-            if (tooltipTimeout) clearTimeout(tooltipTimeout);
-            tooltipTimeout = setTimeout(() => {
-              if (chartInstance) {
-                chartInstance.setActiveElements([]);
-                chartInstance.update();
-              }
-            }, 3000);
+          onHover: (e, elements) => {
+            if (elements && elements.length > 0) {
+              if (tooltipTimeout) clearTimeout(tooltipTimeout);
+              tooltipTimeout = setTimeout(() => {
+                hideTooltip();
+              }, 3000);
+            }
           },
           scales: {
             x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.1)' } },
@@ -745,6 +744,9 @@
       if (chartInstance) {
         if (tooltipTimeout) clearTimeout(tooltipTimeout);
         chartInstance.setActiveElements([]);
+        if (chartInstance.tooltip) {
+          chartInstance.tooltip.setActiveElements([], {x: 0, y: 0});
+        }
         chartInstance.update();
       }
     }
