@@ -237,6 +237,8 @@
     let expectedPages = 0;
     let receivedPayloads = [];
     let isComplete = false;
+    let chartInstance = null; 
+    let tooltipTimeout = null; 
 
     // カメラ起動処理
     btnStart.addEventListener("click", async () => {
@@ -671,7 +673,8 @@
       
       // グラフ描画
       const ctxChart = document.getElementById("chart").getContext("2d");
-      new Chart(ctxChart, {
+      if (chartInstance) chartInstance.destroy(); 
+      chartInstance = new Chart(ctxChart, {
         type: 'line',
         data: {
           labels: labels,
@@ -699,6 +702,15 @@
         options: {
           responsive: true,
           interaction: { mode: 'index', intersect: false },
+          onClick: (e) => {
+            if (tooltipTimeout) clearTimeout(tooltipTimeout);
+            tooltipTimeout = setTimeout(() => {
+              if (chartInstance) {
+                chartInstance.setActiveElements([]);
+                chartInstance.update();
+              }
+            }, 3000);
+          },
           scales: {
             x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.1)' } },
             y: {
@@ -726,7 +738,25 @@
         a.download = `env_history_${ts}.csv`;
         a.click();
       };
+      };
     }
+
+    // グラフ外タップでラベルを消す
+    function hideTooltip() {
+      if (chartInstance) {
+        if (tooltipTimeout) clearTimeout(tooltipTimeout);
+        chartInstance.setActiveElements([]);
+        chartInstance.update();
+      }
+    }
+
+    window.addEventListener('mousedown', (e) => {
+      if (e.target.id !== 'chart') hideTooltip();
+    });
+
+    window.addEventListener('touchstart', (e) => {
+      if (e.target.id !== 'chart') hideTooltip();
+    }, { passive: true });
   </script>
 </body>
 </html>
