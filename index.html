@@ -154,6 +154,27 @@
       border: 1px solid rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(10px);
     }
+    .di-legend {
+      display: flex; flex-wrap: wrap; justify-content: center;
+      gap: 10px; margin-top: 15px; padding-top: 10px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      font-size: 0.75rem; color: #94a3b8;
+    }
+    .di-legend-item { display: flex; align-items: center; gap: 4px; }
+    .di-box { width: 10px; height: 10px; border-radius: 2px; }
+    .di-box.danger { background: rgba(239, 68, 68, 0.4); }
+    .di-box.alert  { background: rgba(245, 158, 11, 0.4); }
+    .di-box.warn   { background: rgba(252, 211, 77, 0.4); }
+    .di-box.comfort { background: rgba(16, 185, 129, 0.2); }
+    .di-box.cold    { background: rgba(59, 130, 246, 0.4); }
+    .di-summary-table {
+      width: 100%; margin-top: 15px; border-collapse: collapse;
+      font-size: 0.8rem; text-align: center;
+    }
+    .di-summary-table th, .di-summary-table td {
+      padding: 8px; border: 1px solid rgba(255,255,255,0.1);
+    }
+    .di-summary-table th { background: rgba(0,0,0,0.2); color: #94a3b8; font-weight: normal; }
   </style>
 </head>
 <body>
@@ -481,8 +502,58 @@
       
       // UIの切り替え
       document.getElementById("scanner-container").style.display = "none";
-      document.getElementById("chart-container").style.display = "block";
+      const chartContainer = document.getElementById("chart-container");
+      chartContainer.style.display = "block";
       
+      // DI凡例の追加
+      if (!document.getElementById("di-legend")) {
+        const legend = document.createElement("div");
+        legend.id = "di-legend";
+        legend.className = "di-legend";
+        legend.innerHTML = `
+          <div class="di-legend-item"><div class="di-box danger"></div>危険</div>
+          <div class="di-legend-item"><div class="di-box alert"></div>警戒</div>
+          <div class="di-legend-item"><div class="di-box warn"></div>やや暑</div>
+          <div class="di-legend-item"><div class="di-box comfort"></div>快適</div>
+          <div class="di-legend-item"><div class="di-box cold"></div>寒い</div>
+        `;
+        chartContainer.appendChild(legend);
+      }
+      
+      // DI集計の計算
+      let hotCount = 0, comfortCount = 0, coldCount = 0;
+      for (let d of di_data) {
+        if (d >= 75) hotCount++;
+        else if (d < 55) coldCount++;
+        else comfortCount++;
+      }
+      let totalCount = di_data.length || 1; // 0割対策
+      let hotPct = ((hotCount / totalCount) * 100).toFixed(1);
+      let comfortPct = ((comfortCount / totalCount) * 100).toFixed(1);
+      let coldPct = ((coldCount / totalCount) * 100).toFixed(1);
+
+      // DI割合テーブルの追加
+      let summaryEl = document.getElementById("di-summary");
+      if (!summaryEl) {
+        summaryEl = document.createElement("div");
+        summaryEl.id = "di-summary";
+        chartContainer.appendChild(summaryEl);
+      }
+      summaryEl.innerHTML = `
+        <table class="di-summary-table">
+          <tr>
+            <th>暑い・危険 (DI≧75)</th>
+            <th>快 適 (55≦DI＜75)</th>
+            <th>寒い (DI＜55)</th>
+          </tr>
+          <tr>
+            <td style="color: #fca5a5">${hotPct} %</td>
+            <td style="color: #6ee7b7">${comfortPct} %</td>
+            <td style="color: #93c5fd">${coldPct} %</td>
+          </tr>
+        </table>
+      `;
+
       // DI背景描画用のカスタムプラグイン
       const diBackgroundPlugin = {
         id: 'diBackground',
@@ -495,18 +566,16 @@
             let color = 'rgba(0, 0, 0, 0)'; // Default
             
             // 快適さの色分け
-            if (diValue >= 85) color = 'rgba(239, 68, 68, 0.2)'; // 危険 (赤)
-            else if (diValue >= 80) color = 'rgba(245, 158, 11, 0.2)'; // 警戒 (オレンジ)
-            else if (diValue >= 75) color = 'rgba(252, 211, 77, 0.15)'; // やや暑い (黄)
-            else if (diValue < 55) color = 'rgba(59, 130, 246, 0.15)'; // 寒い (青)
-            // 55〜75は快適ゾーンとして色を付けない（透過）
+            if (diValue >= 85) color = 'rgba(239, 68, 68, 0.35)';   // 危険 (赤)
+            else if (diValue >= 80) color = 'rgba(245, 158, 11, 0.3)'; // 警戒 (オレンジ)
+            else if (diValue >= 75) color = 'rgba(252, 211, 77, 0.25)'; // やや暑い (黄)
+            else if (diValue < 55) color = 'rgba(59, 130, 246, 0.25)'; // 寒い (青)
+            else color = 'rgba(16, 185, 129, 0.12)';                // 快適 (緑)
             
-            if (color !== 'rgba(0, 0, 0, 0)') {
-              const startX = x.getPixelForValue(i - 0.5);
-              const endX = x.getPixelForValue(i + 0.5);
-              ctx.fillStyle = color;
-              ctx.fillRect(startX, chartArea.top, endX - startX, chartArea.bottom - chartArea.top);
-            }
+            const startX = x.getPixelForValue(i - 0.5);
+            const endX = x.getPixelForValue(i + 0.5);
+            ctx.fillStyle = color;
+            ctx.fillRect(startX, chartArea.top, endX - startX, chartArea.bottom - chartArea.top);
           }
           ctx.restore();
         }
@@ -526,7 +595,7 @@
               backgroundColor: 'rgba(16, 185, 129, 0.1)',
               yAxisID: 'y',
               tension: 0.3,
-              fill: true
+              fill: false
             },
             {
               label: '湿度 (%)',
@@ -535,7 +604,7 @@
               backgroundColor: 'rgba(59, 130, 246, 0.1)',
               yAxisID: 'y1',
               tension: 0.3,
-              fill: true
+              fill: false
             }
           ]
         },
