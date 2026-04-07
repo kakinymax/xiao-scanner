@@ -452,10 +452,13 @@
       
       btnDlAi.onclick = () => {
         let a = document.createElement("a");
+        a.style.display = "none";
         a.href = url;
         let ts = Math.floor(Date.now() / 1000);
         a.download = `ai_env_log_${ts}.bin`;
+        document.body.appendChild(a);
         a.click();
+        setTimeout(() => document.body.removeChild(a), 100);
       };
     }
 
@@ -733,9 +736,12 @@
       
       btnDl.onclick = () => {
         let a = document.createElement("a");
+        a.style.display = "none";
         a.href = url;
         a.download = `env_history_${ts}.csv`;
+        document.body.appendChild(a);
         a.click();
+        setTimeout(() => document.body.removeChild(a), 100);
       };
     }
 
