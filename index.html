@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XIAO ENV Data Scanner</title>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: rgba(30, 41, 59, 0.8);
+      --accent: #10b981;
+      --text: #f8fafc;
+    }
+    body {
+      margin: 0; padding: 0;
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', -apple-system, sans-serif;
+      display: flex; flex-direction: column;
+      align-items: center; 
+      min-height: 100vh;
+      min-height: 100dvh;
+      background: radial-gradient(circle at top, #1e293b, var(--bg));
+    }
+    .container {
+      width: 100%; max-width: 450px;
+      padding: 30px 20px; box-sizing: border-box;
+      display: flex; flex-direction: column; gap: 20px;
+      z-index: 10;
+      margin: auto;
+    }
+    .header {
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0; font-size: 1.6rem;
+      background: linear-gradient(to right, #34d399, #3b82f6);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 1px;
+    }
+    .header p {
+      color: #94a3b8; font-size: 0.9rem; margin-top: 5px;
+    }
+    .scanner-box {
+      position: relative;
+      width: 100%; aspect-ratio: 1;
+      background: #000;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    video {
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+    .overlay {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      box-shadow: inset 0 0 0 4px rgba(16, 185, 129, 0.4);
+      border-radius: 20px;
+      pointer-events: none;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .scan-line {
+      width: 90%; height: 2px;
+      background: var(--accent);
+      box-shadow: 0 0 15px var(--accent);
+      animation: scan 2s linear infinite alternate;
+      position: absolute;
+    }
+    @keyframes scan {
+      0% { top: 5%; opacity: 0.8; }
+      100% { top: 95%; opacity: 1; }
+    }
+    .focus-hint {
+      position: absolute; bottom: 10px; left: 0; right: 0;
+      text-align: center; font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.6);
+      pointer-events: none;
+      letter-spacing: 0.5px;
+    }
+    .focus-ring {
+      position: absolute;
+      width: 60px; height: 60px;
+      border: 2px solid #fbbf24;
+      border-radius: 8px;
+      pointer-events: none;
+      display: none;
+      transform: translate(-50%, -50%);
+      animation: focus-flash 0.4s ease-out;
+    }
+    @keyframes focus-flash {
+      0%   { opacity: 1; transform: translate(-50%, -50%) scale(1.3); }
+      100% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); }
+    }
+    .progress-panel {
+      background: var(--panel);
+      padding: 20px; border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+    }
+    .progress-text {
+      display: flex; justify-content: space-between;
+      margin-bottom: 15px; font-weight: bold; font-size: 0.95rem;
+    }
+    .blocks {
+      display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+    }
+    .block {
+      flex: 1; height: 12px; min-width: 15px; max-width: 30px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .block.active {
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent);
+      transform: scale(1.1);
+    }
+    .btn-group {
+      display: flex; gap: 10px; width: 100%;
+    }
+    .btn-group button {
+      flex: 1; padding: 15px 10px; font-size: 1rem;
+    }
+    #btn-ble {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    }
+    button {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff;
+      border: none; padding: 15px 20px;
+      border-radius: 12px; font-weight: bold;
+      font-size: 1.1rem; cursor: pointer;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+      transition: transform 0.1s, box-shadow 0.2s;
+      width: 100%; letter-spacing: 0.5px;
+    }
+    button:active { transform: scale(0.97); }
+    button:disabled { background: #475569; color: #94a3b8; box-shadow: none; cursor:not-allowed; }
+    #canvas { display: none; }
+    
+    #chart-container {
+      display: none;
+      width: 100%;
+      background: var(--panel);
+      padding: 15px;
+      border-radius: 16px;
+      box-sizing: border-box;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+    }
+    .di-legend {
+      display: flex; flex-wrap: wrap; justify-content: center;
+      gap: 10px; margin-top: 15px; padding-top: 10px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      font-size: 0.75rem; color: #94a3b8;
+    }
+    .di-legend-item { display: flex; align-items: center; gap: 4px; }
+    .di-box { width: 10px; height: 10px; border-radius: 2px; }
+    .di-box.danger { background: rgba(239, 68, 68, 0.4); }
+    .di-box.alert  { background: rgba(245, 158, 11, 0.4); }
+    .di-box.warn   { background: rgba(252, 211, 77, 0.4); }
+    .di-box.comfort { background: rgba(16, 185, 129, 0.2); }
+    .di-box.cold    { background: rgba(59, 130, 246, 0.4); }
+    .di-summary-table {
+      width: 100%; margin-top: 15px; border-collapse: collapse;
+      font-size: 0.8rem; text-align: center;
+    }
+    .di-summary-table th, .di-summary-table td {
+      padding: 8px; border: 1px solid rgba(255,255,255,0.1);
+    }
+    .di-summary-table th { background: rgba(0,0,0,0.2); color: #94a3b8; font-weight: normal; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>XIAO ENV DECODER</h1>
+      <p>「Record video now」の画面を枠内に捉えてください</p>
+    </div>
+
+    <div class="scanner-box" id="scanner-container">
+      <video id="video" autoplay playsinline muted></video>
+      <div class="overlay">
+        <div class="scan-line" id="scan-line"></div>
+        <div class="focus-hint" id="focus-hint">👆 タップでフォーカス</div>
+        <div class="focus-ring" id="focus-ring"></div>
+      </div>
+      <canvas id="canvas"></canvas>
+    </div>
+
+    <div id="chart-container">
+      <canvas id="chart"></canvas>
+    </div>
+
+    <div class="progress-panel">
+      <div class="progress-text">
+        <span>Capture Progress</span>
+        <span id="status">Waiting for Camera...</span>
+      </div>
+      <div class="blocks" id="blocks">
+        <!-- JS Insert -->
+        <span style="font-size: 0.8rem; color: #64748b; margin: auto;">カメラを起動してください</span>
+      </div>
+    </div>
+
+    <div class="btn-group" id="btn-wrapper">
+      <button id="btn-start">📷 カメラ起動</button>
+      <button id="btn-ble">📶 BLE同期</button>
+    </div>
+    
+    <div style="margin-top: 10px; width: 100%;">
+      <button id="btn-ai-log" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); font-size: 0.9rem; padding: 10px;">🤖 全AIログを取得 (1ヶ月分)</button>
+    </div>
+  </div>
+
+  <script>
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const blocksEl = document.getElementById("blocks");
+    const statusEl = document.getElementById("status");
+    const btnStart = document.getElementById("btn-start");
+    const btnBle = document.getElementById("btn-ble");
+    const btnAiLog = document.getElementById("btn-ai-log");
+    const btnWrapper = document.getElementById("btn-wrapper");
+    const focusRing = document.getElementById("focus-ring");
+    const focusHint = document.getElementById("focus-hint");
+    let activeStream = null;
+    
+    let scanning = false;
+    let expectedPages = 0;
+    let receivedPayloads = [];
+    let isComplete = false;
+
+    // カメラ起動処理
+    btnStart.addEventListener("click", async () => {
+      if (scanning && !isComplete) return;
+      if (isComplete) return;
+
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error("カメラAPIがブロックされています。\nSafari(iOS)等の仕様により、カメラ機能は「HTTPS環境」または「localhost」でしか使用できません。ローカルネットワーク(http://192.168...)からアクセスしている場合は、ngrok等のHTTPSトンネルを使用するか、GitHub Pages等にアップロードしてください。");
+        }
+        // 高解像度＋continuousフォーカスで起動
+        const constraints = { 
+          video: {
+            facingMode: "environment",
+            width:  { ideal: 1920 },
+            height: { ideal: 1080 },
+            advanced: [{ focusMode: "continuous" }]
+          }
+        };
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        activeStream = stream;
+        video.srcObject = stream;
+        video.setAttribute("playsinline", "true");
+        video.setAttribute("autoplay", "true");
+        video.setAttribute("muted", "true");
+        video.muted = true;
+        
+        let playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(e => {
+            alert("Video再生エラー: " + e.message + "\n画面を一度タップしてみてください。");
+          });
+        }
+
+        // タップでフォーカス（pointOfInterest）
+        video.addEventListener("click", async (e) => {
+          if (!activeStream) return;
+          const track = activeStream.getVideoTracks()[0];
+          if (!track) return;
+          const caps = track.getCapabilities ? track.getCapabilities() : {};
+          const rect = video.getBoundingClientRect();
+          const x = (e.clientX - rect.left) / rect.width;
+          const y = (e.clientY - rect.top) / rect.height;
+
+          // フォーカスリングをタップ位置に表示
+          focusRing.style.left = (e.clientX - rect.left) + "px";
+          focusRing.style.top  = (e.clientY - rect.top)  + "px";
+          focusRing.style.display = "block";
+          focusRing.style.animation = "none";
+          void focusRing.offsetWidth; // reflow
+          focusRing.style.animation = "focus-flash 0.4s ease-out";
+          setTimeout(() => { focusRing.style.display = "none"; }, 800);
+
+          try {
+            const advanced = [{ focusMode: "single-shot" }];
+            if (caps.pointOfInterest) advanced[0].pointOfInterest = { x, y };
+            await track.applyConstraints({ advanced });
+          } catch (_) {
+            // デバイスが非対応でも無視
+          }
+        });
+
+        // ヒントを3秒後に非表示
+        setTimeout(() => { focusHint.style.opacity = "0"; focusHint.style.transition = "opacity 1s"; }, 3000);
+        
+        requestAnimationFrame(tick);
+        scanning = true;
+        btnStart.innerText = "Scanning...";
+        btnStart.disabled = true;
+        statusEl.innerText = "読み取り中... 📱";
+        blocksEl.innerHTML = "";
+      } catch (err) {
+        alert("カメラへのアクセスが必要です（設定を確認してください）\n詳細: " + err.message);
+      }
+    });
+
+    // BLE起動処理
+    btnBle.addEventListener("click", async () => {
+      if (scanning && !isComplete) return;
+      if (isComplete) return;
+      
+      try {
+        const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+        const CHAR_RX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+        const CHAR_TX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a9";
+
+        statusEl.innerText = "BLEを探しています...";
+        const bleDevice = await navigator.bluetooth.requestDevice({
+          filters: [{ namePrefix: "XIAO" }],
+          optionalServices: [SERVICE_UUID]
+        });
+
+        statusEl.innerText = "接続中...";
+        const server = await bleDevice.gatt.connect();
+        const service = await server.getPrimaryService(SERVICE_UUID);
+        const rxChar = await service.getCharacteristic(CHAR_RX_UUID);
+        const txChar = await service.getCharacteristic(CHAR_TX_UUID);
+
+        // 時刻同期
+        const ts = Math.floor(Date.now() / 1000).toString();
+        const enc = new TextEncoder();
+        await rxChar.writeValue(enc.encode(ts));
+        
+        statusEl.innerText = "時刻同期OK。XIAOを操作してExport画面にしてください...";
+
+        // データ受信待機
+        await txChar.startNotifications();
+        
+        let bleCompLen = 0;
+        let bleBuffer = [];
+        
+        txChar.addEventListener("characteristicvaluechanged", (e) => {
+          const value = new Uint8Array(e.target.value.buffer);
+          
+          if (bleBuffer.length === 0) {
+            let history_count = value[0];
+            bleCompLen = 6 + (history_count * 3);
+          }
+          
+          for (let i=0; i<value.length; i++) {
+            bleBuffer.push(value[i]);
+          }
+          
+          statusEl.innerText = `受信中... ${bleBuffer.length} / ${bleCompLen} bytes`;
+          
+          if (bleBuffer.length >= bleCompLen && !isComplete) {
+            isComplete = true;
+            processComplete(new Uint8Array(bleBuffer));
+          }
+        });
+
+      } catch(err) {
+        alert("BLE接続エラー: " + err.message);
+        statusEl.innerText = "Waiting for Camera/BLE...";
+      }
+    });
+
+    // AIログ取得処理
+    btnAiLog.addEventListener("click", async () => {
+      if (scanning && !isComplete) return;
+      if (isComplete) return;
+      
+      try {
+        const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+        const CHAR_RX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+        const CHAR_TX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a9";
+
+        statusEl.innerText = "AIログ用: BLEを探しています...";
+        const bleDevice = await navigator.bluetooth.requestDevice({
+          filters: [{ namePrefix: "XIAO" }],
+          optionalServices: [SERVICE_UUID]
+        });
+
+        statusEl.innerText = "接続中...";
+        const server = await bleDevice.gatt.connect();
+        const service = await server.getPrimaryService(SERVICE_UUID);
+        const rxChar = await service.getCharacteristic(CHAR_RX_UUID);
+        const txChar = await service.getCharacteristic(CHAR_TX_UUID);
+
+        statusEl.innerText = "AIログ転送要求を送信中... (数分かかります。画面を閉じないでください)";
+        const enc = new TextEncoder();
+        await rxChar.writeValue(enc.encode("GET_AI_LOG"));
+        
+        await txChar.startNotifications();
+        
+        let aiBuffer = [];
+        let receiveStartTime = Date.now();
+        
+        alert("⚠️【注意】\nAIログの全量転送には数分かかります。\nスマホの画面がスリープしないように時々タップし、この画面を開いたままお待ちください。");
+
+        txChar.addEventListener("characteristicvaluechanged", (e) => {
+          const value = new Uint8Array(e.target.value.buffer);
+          
+          // 終了マーカーの判定
+          if (value.length === 3 && value[0] === 69 && value[1] === 79 && value[2] === 70) { // "EOF"
+            txChar.stopNotifications();
+            processAILogComplete(new Uint8Array(aiBuffer));
+            return;
+          }
+          if (value.length === 9 && String.fromCharCode(...value) === "NO_AI_LOG") {
+            alert("マイコン内にAIログがまだありません。（数十分稼働させてから再度お試しください）");
+            statusEl.innerText = "AIログなし";
+            txChar.stopNotifications();
+            return;
+          }
+          
+          for (let i=0; i<value.length; i++) {
+            aiBuffer.push(value[i]);
+          }
+          
+          let elapsedSec = Math.floor((Date.now() - receiveStartTime) / 1000);
+          statusEl.innerText = `AIログ受信中... ${aiBuffer.length} bytes (${elapsedSec}秒経過)`;
+        });
+
+      } catch(err) {
+        alert("AIログ転送エラー: " + err.message);
+        statusEl.innerText = "Waiting for Camera/BLE...";
+      }
+    });
+
+    function processAILogComplete(comp) {
+      statusEl.innerText = `🎉 AIログ受信完了！ (${comp.length} bytes)`;
+      statusEl.style.color = "var(--accent)";
+      
+      btnWrapper.innerHTML = `<button id="btn-dl-ai">🤖 AI用バイナリ(.bin)を保存</button>`;
+      const btnDlAi = document.getElementById("btn-dl-ai");
+      
+      // Blobを作成してダウンロード
+      let blob = new Blob([comp], { type: "application/octet-stream" });
+      let url = URL.createObjectURL(blob);
+      
+      btnDlAi.onclick = () => {
+        let a = document.createElement("a");
+        a.href = url;
+        let ts = Math.floor(Date.now() / 1000);
+        a.download = `ai_env_log_${ts}.bin`;
+        a.click();
+      };
+    }
+
+    function initBlocks(total) {
+      if (expectedPages === total) return;
+      expectedPages = total;
+      receivedPayloads = new Array(total).fill(null);
+      blocksEl.innerHTML = "";
+      for(let i=0; i<total; i++) {
+        let b = document.createElement("div");
+        b.className = "block";
+        b.id = "block-" + i;
+        blocksEl.appendChild(b);
+      }
+    }
+
+    // メインループ
+    const scanLine = document.getElementById("scan-line");
+    function setScanColor(color) {
+      scanLine.style.background = color;
+      scanLine.style.boxShadow = `0 0 20px ${color}`;
+    }
+
+    function tick() {
+      if (!scanning) return;
+      if (video.readyState === video.HAVE_ENOUGH_DATA && !isComplete) {
+        canvas.width = Math.min(video.videoWidth, 600);
+        canvas.height = canvas.width * (video.videoHeight / video.videoWidth);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        let code = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: "attemptBoth",
+        });
+
+        if (!code) {
+          // QR自体を認識できていない
+          setScanColor("var(--accent)"); // 緑
+          if (!statusEl.innerText.includes("/")) statusEl.innerText = "読み取り中... 📱";
+        } else if (!code.binaryData || code.binaryData.length < 2) {
+          // QRは見えているがバイナリデータが無い（テキストQR等）
+          setScanColor("#f59e0b"); // 黄色
+          statusEl.innerText = "⚠️ QR検出：バイナリ属性なし";
+        } else {
+          let page = code.binaryData[0];
+          let total = code.binaryData[1];
+          let chunk = Array.from(code.binaryData.slice(2));
+
+          if (total === 0 || total >= 50) {
+            setScanColor("#f59e0b"); // 黄色
+            statusEl.innerText = `⚠️ QR検出：page=${page} total=${total} (不正)`;
+          } else {
+            // 正しいXIAO形式
+            setScanColor("#34d399"); // 明るい緑
+            initBlocks(total);
+            if (page < total && !receivedPayloads[page]) {
+              receivedPayloads[page] = chunk;
+              let el = document.getElementById("block-" + page);
+              if (el) el.classList.add("active");
+              let count = receivedPayloads.filter(x => x !== null).length;
+              statusEl.innerText = `✅ ${count} / ${total} ページ完了`;
+              if (count === total) { isComplete = true; processComplete(); }
+            }
+          }
+        }
+      }
+      if (!isComplete) requestAnimationFrame(tick);
+    }
+
+    // 読み取り完了＆結合処理
+    function processComplete(directBuffer = null) {
+      scanning = false;
+      if (video.srcObject) {
+         const tracks = video.srcObject.getTracks();
+         tracks.forEach(t => t.stop());
+      }
+      
+      statusEl.innerText = "🎉 結合完了！";
+      statusEl.style.color = "var(--accent)";
+      document.getElementById("scan-line").style.display = "none";
+      
+      btnWrapper.innerHTML = `<button id="btn-dl">💾 CSVをダウンロード</button>`;
+      const btnDl = document.getElementById("btn-dl");
+      
+      let comp;
+      if (directBuffer) {
+        comp = directBuffer;
+      } else {
+        let allBytes = [];
+        for(let i=0; i<expectedPages; i++){
+          allBytes.push(...receivedPayloads[i]);
+        }
+        comp = new Uint8Array(allBytes);
+      }
+      
+      let history_count = comp[0];
+      let history_head = comp[1];
+      let view = new DataView(comp.buffer);
+      let ts = view.getUint32(2, true); 
+      
+      let labels = [];
+      let temp_data = [];
+      let hum_data = [];
+      let di_data = [];
+      
+      let csv = "Timestamp,Temperature(C),Humidity(%),DiscomfortIndex\n";
+      let pos_t = 6;
+      let pos_h = 6 + history_count;
+      let pos_di = 6 + history_count * 2;
+      
+      for(let i=0; i<history_count; i++) {
+        let t_raw = comp[pos_t + i];
+        let h_raw = comp[pos_h + i];
+        let di_raw = comp[pos_di + i];
+        
+        let temp = (t_raw / 5.0) + 10.0;
+        let hum = h_raw / 2.55;
+        let di = (di_raw / 4.0) + 30.0;
+        
+        let agoMins = (history_count - 1 - i) * 12;
+        let pTime = new Date((ts - agoMins * 60) * 1000);
+        
+        let pad = n => ('0'+n).slice(-2);
+        let timeStr = `${pTime.getFullYear()}-${pad(pTime.getMonth()+1)}-${pad(pTime.getDate())} ${pad(pTime.getHours())}:${pad(pTime.getMinutes())}:${pad(pTime.getSeconds())}`;
+        let shortTimeStr = `${pad(pTime.getHours())}:${pad(pTime.getMinutes())}`;
+        
+        labels.push(shortTimeStr);
+        temp_data.push(temp.toFixed(1));
+        hum_data.push(hum.toFixed(1));
+        di_data.push(di);
+        
+        csv += `${timeStr},${temp.toFixed(1)},${hum.toFixed(1)},${di.toFixed(1)}\n`;
+      }
+      
+      // UIの切り替え
+      document.getElementById("scanner-container").style.display = "none";
+      const chartContainer = document.getElementById("chart-container");
+      chartContainer.style.display = "block";
+      
+      // DI凡例の追加
+      if (!document.getElementById("di-legend")) {
+        const legend = document.createElement("div");
+        legend.id = "di-legend";
+        legend.className = "di-legend";
+        legend.innerHTML = `
+          <div class="di-legend-item"><div class="di-box danger"></div>危険</div>
+          <div class="di-legend-item"><div class="di-box alert"></div>警戒</div>
+          <div class="di-legend-item"><div class="di-box warn"></div>やや暑</div>
+          <div class="di-legend-item"><div class="di-box comfort"></div>快適</div>
+          <div class="di-legend-item"><div class="di-box cold"></div>寒い</div>
+        `;
+        chartContainer.appendChild(legend);
+      }
+      
+      // DI集計の計算
+      let hotCount = 0, comfortCount = 0, coldCount = 0;
+      for (let d of di_data) {
+        if (d >= 75) hotCount++;
+        else if (d < 55) coldCount++;
+        else comfortCount++;
+      }
+      let totalCount = di_data.length || 1; // 0割対策
+      let hotPct = ((hotCount / totalCount) * 100).toFixed(1);
+      let comfortPct = ((comfortCount / totalCount) * 100).toFixed(1);
+      let coldPct = ((coldCount / totalCount) * 100).toFixed(1);
+
+      // DI割合テーブルの追加
+      let summaryEl = document.getElementById("di-summary");
+      if (!summaryEl) {
+        summaryEl = document.createElement("div");
+        summaryEl.id = "di-summary";
+        chartContainer.appendChild(summaryEl);
+      }
+      summaryEl.innerHTML = `
+        <table class="di-summary-table">
+          <tr>
+            <th>暑い・危険 (DI≧75)</th>
+            <th>快 適 (55≦DI＜75)</th>
+            <th>寒い (DI＜55)</th>
+          </tr>
+          <tr>
+            <td style="color: #fca5a5">${hotPct} %</td>
+            <td style="color: #6ee7b7">${comfortPct} %</td>
+            <td style="color: #93c5fd">${coldPct} %</td>
+          </tr>
+        </table>
+      `;
+
+      // DI背景描画用のカスタムプラグイン
+      const diBackgroundPlugin = {
+        id: 'diBackground',
+        beforeDatasetsDraw: (chart) => {
+          const { ctx, chartArea, scales: { x } } = chart;
+          ctx.save();
+          
+          for (let i = 0; i < di_data.length; i++) {
+            const diValue = di_data[i];
+            let color = 'rgba(0, 0, 0, 0)'; // Default
+            
+            // 快適さの色分け
+            if (diValue >= 85) color = 'rgba(239, 68, 68, 0.35)';   // 危険 (赤)
+            else if (diValue >= 80) color = 'rgba(245, 158, 11, 0.3)'; // 警戒 (オレンジ)
+            else if (diValue >= 75) color = 'rgba(252, 211, 77, 0.25)'; // やや暑い (黄)
+            else if (diValue < 55) color = 'rgba(59, 130, 246, 0.25)'; // 寒い (青)
+            else color = 'rgba(16, 185, 129, 0.12)';                // 快適 (緑)
+            
+            const startX = x.getPixelForValue(i - 0.5);
+            const endX = x.getPixelForValue(i + 0.5);
+            ctx.fillStyle = color;
+            ctx.fillRect(startX, chartArea.top, endX - startX, chartArea.bottom - chartArea.top);
+          }
+          ctx.restore();
+        }
+      };
+      
+      // グラフ描画
+      const ctxChart = document.getElementById("chart").getContext("2d");
+      new Chart(ctxChart, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: '温度 (°C)',
+              data: temp_data,
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              yAxisID: 'y',
+              tension: 0.3,
+              fill: false
+            },
+            {
+              label: '湿度 (%)',
+              data: hum_data,
+              borderColor: '#3b82f6',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              yAxisID: 'y1',
+              tension: 0.3,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          interaction: { mode: 'index', intersect: false },
+          scales: {
+            x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+            y: {
+              type: 'linear', display: true, position: 'left',
+              ticks: { color: '#10b981' }, grid: { color: 'rgba(255,255,255,0.1)' }
+            },
+            y1: {
+              type: 'linear', display: true, position: 'right',
+              ticks: { color: '#3b82f6' }, grid: { drawOnChartArea: false }
+            }
+          },
+          plugins: {
+            legend: { labels: { color: '#f8fafc' } }
+          }
+        },
+        plugins: [diBackgroundPlugin]
+      });
+      
+      let blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      let url = URL.createObjectURL(blob);
+      
+      btnDl.onclick = () => {
+        let a = document.createElement("a");
+        a.href = url;
+        a.download = `env_history_${ts}.csv`;
+        a.click();
+      };
+    }
+  </script>
+</body>
+</html>
