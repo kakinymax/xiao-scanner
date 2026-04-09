@@ -45,6 +45,15 @@
     .header p {
       color: #94a3b8; font-size: 0.9rem; margin-top: 5px;
     }
+
+    /* 各フェーズのコンテナ */
+    .phase-container {
+      display: none; /* JSで制御 */
+      flex-direction: column;
+      gap: 20px;
+      width: 100%;
+    }
+
     .scanner-box {
       position: relative;
       width: 100%; aspect-ratio: 1;
@@ -142,10 +151,52 @@
     }
     button:active { transform: scale(0.97); }
     button:disabled { background: #475569; color: #94a3b8; box-shadow: none; cursor:not-allowed; }
+    
+    #btn-ai-advice {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+    }
+
+    /* 設定ボタンとモーダルのスタイル */
+    #btn-settings {
+      background: transparent;
+      box-shadow: none;
+      color: #94a3b8;
+      width: auto;
+      padding: 10px;
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 1.5rem;
+      z-index: 20;
+    }
+    #btn-settings:hover { color: #f8fafc; }
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none; justify-content: center; align-items: center;
+      z-index: 100; backdrop-filter: blur(5px);
+    }
+    .modal-content {
+      background: var(--bg);
+      padding: 20px; border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      width: 90%; max-width: 400px;
+    }
+    .modal-content h2 { margin-top: 0; font-size: 1.2rem; }
+    .modal-content input {
+      width: 100%; padding: 10px; margin: 15px 0;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white; border-radius: 8px; box-sizing: border-box;
+    }
+    .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; }
+    .modal-buttons button { width: auto; padding: 10px 15px; font-size: 0.9rem; }
+    .btn-cancel { background: #475569; box-shadow: none; }
+
     #canvas { display: none; }
     
     #chart-container {
-      display: none;
       width: 100%;
       background: var(--panel);
       padding: 15px;
@@ -175,47 +226,118 @@
       padding: 8px; border: 1px solid rgba(255,255,255,0.1);
     }
     .di-summary-table th { background: rgba(0,0,0,0.2); color: #94a3b8; font-weight: normal; }
+
+    /* AI Advice Panel */
+    #ai-advice-panel {
+      background: var(--panel);
+      padding: 20px; border-radius: 16px;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      backdrop-filter: blur(10px);
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+    .ai-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: #fbbf24;
+      margin: 0;
+    }
+    .ai-content {
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: #f8fafc;
+    }
+    .loading-dots:after {
+      content: '.';
+      animation: dots 1.5s steps(5, end) infinite;
+    }
+    @keyframes dots {
+      0%, 20% { color: rgba(0,0,0,0); text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); }
+      40% { color: white; text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); }
+      60% { text-shadow: .25em 0 0 white, .5em 0 0 rgba(0,0,0,0); }
+      80%, 100% { text-shadow: .25em 0 0 white, .5em 0 0 white; }
+    }
   </style>
 </head>
 <body>
   <div class="container">
+    <button id="btn-settings" title="設定">⚙️</button>
     <div class="header">
       <h1>XIAO ENV DECODER</h1>
-      <p>「Record video now」の画面を枠内に捉えてください</p>
+      <p id="header-desc">取得方法を選択してください</p>
     </div>
 
-    <div class="scanner-box" id="scanner-container">
-      <video id="video" autoplay playsinline muted></video>
-      <div class="overlay">
-        <div class="scan-line" id="scan-line"></div>
-        <div class="focus-hint" id="focus-hint">👆 タップでフォーカス</div>
-        <div class="focus-ring" id="focus-ring"></div>
+    <!-- Phase 1: Setup -->
+    <div id="phase-setup" class="phase-container" style="display: flex;">
+      <div class="btn-group">
+        <button id="btn-start">📷 カメラ起動</button>
+        <button id="btn-ble">📶 BLE同期</button>
       </div>
-      <canvas id="canvas"></canvas>
-    </div>
-
-    <div id="chart-container">
-      <canvas id="chart"></canvas>
-    </div>
-
-    <div class="progress-panel">
-      <div class="progress-text">
-        <span>Capture Progress</span>
-        <span id="status">Waiting for Camera...</span>
-      </div>
-      <div class="blocks" id="blocks">
-        <!-- JS Insert -->
-        <span style="font-size: 0.8rem; color: #64748b; margin: auto;">カメラを起動してください</span>
+      <div style="width: 100%;">
+        <button id="btn-ai-log" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); font-size: 0.9rem; padding: 10px;">🤖 全AIログを取得 (1ヶ月分)</button>
       </div>
     </div>
 
-    <div class="btn-group" id="btn-wrapper">
-      <button id="btn-start">📷 カメラ起動</button>
-      <button id="btn-ble">📶 BLE同期</button>
+    <!-- Phase 2: Active (Scan / BLE Progress) -->
+    <div id="phase-active" class="phase-container">
+      <div class="scanner-box" id="scanner-container">
+        <video id="video" playsinline muted></video>
+        <div class="overlay">
+          <div class="scan-line" id="scan-line"></div>
+          <div class="focus-hint" id="focus-hint">👆 タップでフォーカス</div>
+          <div class="focus-ring" id="focus-ring"></div>
+        </div>
+        <canvas id="canvas"></canvas>
+      </div>
+
+      <div class="progress-panel">
+        <div class="progress-text">
+          <span>Capture Progress</span>
+          <span id="status">Waiting...</span>
+        </div>
+        <div class="blocks" id="blocks">
+          <span style="font-size: 0.8rem; color: #64748b; margin: auto;">待機中...</span>
+        </div>
+      </div>
     </div>
-    
-    <div style="margin-top: 10px; width: 100%;">
-      <button id="btn-ai-log" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); font-size: 0.9rem; padding: 10px;">🤖 全AIログを取得 (1ヶ月分)</button>
+
+    <!-- Phase 3: Result (Chart & Download) -->
+    <div id="phase-result" class="phase-container">
+      <div id="chart-container" style="display: none;">
+        <canvas id="chart"></canvas>
+      </div>
+      
+      <div id="dl-btn-wrapper" style="width: 100%; display: flex; flex-direction: column; gap: 10px;">
+        <!-- JSでダウンロードボタンが挿入されます -->
+      </div>
+      
+      <button id="btn-ai-advice" style="display: none;">🤖 環境AIアドバイス ✨</button>
+      
+      <div id="ai-advice-panel">
+        <h3 class="ai-header"><span>🤖</span> AI 分析・アドバイス</h3>
+        <div id="ai-advice-content" class="ai-content"></div>
+      </div>
+
+      <button id="btn-reset" style="background: #475569; box-shadow: none;">🔄 最初からやり直す</button>
+    </div>
+
+  </div>
+
+  <!-- 設定モーダル -->
+  <div id="settings-modal" class="modal-overlay">
+    <div class="modal-content">
+      <h2>設定</h2>
+      <p style="font-size: 0.85rem; color: #94a3b8; margin: 0;">Gemini APIキーを入力してください。<br>※キーはブラウザ内部(localStorage)にのみ保存され、安全に管理されます。</p>
+      <input type="password" id="api-key-input" placeholder="AIzaSy...">
+      <div class="modal-buttons">
+        <button id="btn-modal-cancel" class="btn-cancel">キャンセル</button>
+        <button id="btn-modal-save">保存</button>
+      </div>
     </div>
   </div>
 
@@ -228,15 +350,192 @@
     const btnStart = document.getElementById("btn-start");
     const btnBle = document.getElementById("btn-ble");
     const btnAiLog = document.getElementById("btn-ai-log");
-    const btnWrapper = document.getElementById("btn-wrapper");
     const focusRing = document.getElementById("focus-ring");
     const focusHint = document.getElementById("focus-hint");
-    let activeStream = null;
+    const btnAiAdvice = document.getElementById("btn-ai-advice");
+    const aiAdvicePanel = document.getElementById("ai-advice-panel");
+    const aiAdviceContent = document.getElementById("ai-advice-content");
     
+    // 設定モーダル用要素
+    const btnSettings = document.getElementById("btn-settings");
+    const settingsModal = document.getElementById("settings-modal");
+    const btnModalCancel = document.getElementById("btn-modal-cancel");
+    const btnModalSave = document.getElementById("btn-modal-save");
+    const apiKeyInput = document.getElementById("api-key-input");
+    
+    let activeStream = null;
     let scanning = false;
     let expectedPages = 0;
     let receivedPayloads = [];
     let isComplete = false;
+    let myChart = null; // チャートインスタンスを保持する変数
+    let currentEnvData = null; // AIプロンプト用のデータ保持
+
+    // View의切り替え管理関数
+    function switchView(phase) {
+      document.getElementById("phase-setup").style.display = (phase === 1) ? "flex" : "none";
+      document.getElementById("phase-active").style.display = (phase === 2) ? "flex" : "none";
+      document.getElementById("phase-result").style.display = (phase === 3) ? "flex" : "none";
+      
+      const desc = document.getElementById("header-desc");
+      if(phase === 1) desc.innerText = "取得方法を選択してください";
+      else if(phase === 2) desc.innerText = "「Record video now」の画面を枠内に捉えてください";
+      else if(phase === 3) desc.innerText = "データ解析完了";
+    }
+
+    // ダウンロードロジックのモバイル最適化ヘルパー関数
+    function downloadFileHelper(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.style.display = "none";
+      document.body.appendChild(a); // DOMに追加（iOS Safari対策）
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+    }
+
+    // アプリの状態をリセットする関数
+    function resetApp() {
+      // 変数の初期化
+      scanning = false;
+      isComplete = false;
+      expectedPages = 0;
+      receivedPayloads = [];
+      currentEnvData = null;
+      
+      // カメラの停止
+      if (video.srcObject) {
+        video.srcObject.getTracks().forEach(t => t.stop());
+        video.srcObject = null;
+      }
+      activeStream = null;
+
+      // UI要素の初期化
+      statusEl.innerText = "Waiting...";
+      blocksEl.innerHTML = '<span style="font-size: 0.8rem; color: #64748b; margin: auto;">待機中...</span>';
+      document.getElementById("scanner-container").style.display = "block";
+      
+      const scanLine = document.getElementById("scan-line");
+      if(scanLine) {
+        scanLine.style.background = "var(--accent)";
+        scanLine.style.boxShadow = "0 0 15px var(--accent)";
+      }
+
+      // グラフとサマリーの破棄
+      if (myChart) {
+        myChart.destroy();
+        myChart = null;
+      }
+      const summaryEl = document.getElementById("di-summary");
+      if (summaryEl) summaryEl.remove();
+      const legendEl = document.getElementById("di-legend");
+      if (legendEl) legendEl.remove();
+      document.getElementById("dl-btn-wrapper").innerHTML = "";
+      
+      btnAiAdvice.style.display = "none";
+      aiAdvicePanel.style.display = "none";
+      aiAdviceContent.innerHTML = "";
+
+      // Setup画面へ戻す
+      switchView(1);
+    }
+
+    document.getElementById("btn-reset").addEventListener("click", resetApp);
+
+    // --- APIキー管理 ---
+    function getApiKey() {
+      return localStorage.getItem("gemini_api_key") || "";
+    }
+
+    btnSettings.addEventListener("click", () => {
+      apiKeyInput.value = getApiKey();
+      settingsModal.style.display = "flex";
+    });
+
+    btnModalCancel.addEventListener("click", () => {
+      settingsModal.style.display = "none";
+    });
+
+    btnModalSave.addEventListener("click", () => {
+      const key = apiKeyInput.value.trim();
+      localStorage.setItem("gemini_api_key", key);
+      settingsModal.style.display = "none";
+      alert("APIキーを保存しました。");
+    });
+    // -------------------
+
+    // AIフェッチ関数（エクスポネンシャルバックオフ付き）
+    async function fetchWithRetry(url, options, retries = 5) {
+      const delays = [1000, 2000, 4000, 8000, 16000];
+      for (let i = 0; i < retries; i++) {
+        try {
+          const response = await fetch(url, options);
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          return await response.json();
+        } catch (e) {
+          if (i === retries - 1) throw e;
+          await new Promise(res => setTimeout(res, delays[i]));
+        }
+      }
+    }
+
+    // Gemini API 呼び出し処理
+    btnAiAdvice.addEventListener("click", async () => {
+      if (!currentEnvData) return;
+      
+      const savedApiKey = getApiKey();
+      if (!savedApiKey) {
+        alert("APIキーが設定されていません。\n右上の「⚙️設定」アイコンから、ご自身のGemini APIキーを入力・保存してください。");
+        return;
+      }
+      
+      btnAiAdvice.disabled = true;
+      aiAdvicePanel.style.display = "flex";
+      aiAdviceContent.innerHTML = `<span class="loading-dots">環境データをAIが分析中</span>`;
+      
+      // 一般公開されている標準モデル「gemini-2.5-flash」に変更
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${savedApiKey}`;
+      
+      const prompt = `
+        あなたは優れた環境アドバイザーです。以下の測定された温湿度データに基づいて、現在の環境状態を評価し、健康や快適性を維持・向上させるためのアドバイスを、親しみやすいトーンで2〜3段落程度で簡潔に教えてください。
+        
+        【測定データ概要】
+        ・測定期間: ${currentEnvData.labels[0]} 〜 ${currentEnvData.labels[currentEnvData.labels.length - 1]}
+        ・最新の温度: ${currentEnvData.tempData[currentEnvData.tempData.length - 1]}℃
+        ・最新の湿度: ${currentEnvData.humData[currentEnvData.humData.length - 1]}%
+        ・平均温度: ${currentEnvData.avgTemp}℃ (最高: ${currentEnvData.maxTemp}℃, 最低: ${currentEnvData.minTemp}℃)
+        ・平均湿度: ${currentEnvData.avgHum}%
+      `;
+
+      const payload = {
+        contents: [{ parts: [{ text: prompt }] }],
+        systemInstruction: { parts: [{ text: "回答は日本語で提供してください。専門用語はできるだけ避け、一般の人に分かりやすく実践的なアドバイスを心がけてください。" }] }
+      };
+
+      try {
+        const result = await fetchWithRetry(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        
+        const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) {
+          aiAdviceContent.innerHTML = text.replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
+        } else {
+          aiAdviceContent.innerHTML = "AIからの応答を正しく取得できませんでした。";
+        }
+      } catch (error) {
+        aiAdviceContent.innerHTML = `通信エラーが発生しました。<br><span style="font-size:0.75rem; color:#ef4444;">${error.message}</span>`;
+      } finally {
+        btnAiAdvice.disabled = false;
+        btnAiAdvice.innerText = "🤖 アドバイスを再生成 ✨";
+      }
+    });
 
     // カメラ起動処理
     btnStart.addEventListener("click", async () => {
@@ -245,9 +544,11 @@
 
       try {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error("カメラAPIがブロックされています。\nSafari(iOS)等の仕様により、カメラ機能は「HTTPS環境」または「localhost」でしか使用できません。ローカルネットワーク(http://192.168...)からアクセスしている場合は、ngrok等のHTTPSトンネルを使用するか、GitHub Pages等にアップロードしてください。");
+          throw new Error("カメラAPIがブロックされています。\nSafari(iOS)等の仕様により、カメラ機能はHTTPS環境でしか使用できません。");
         }
-        // 高解像度＋continuousフォーカスで起動
+        
+        switchView(2); // カメラ起動時にActiveフェーズへ移行
+        
         const constraints = { 
           video: {
             facingMode: "environment",
@@ -271,7 +572,7 @@
           });
         }
 
-        // タップでフォーカス（pointOfInterest）
+        // タップでフォーカス
         video.addEventListener("click", async (e) => {
           if (!activeStream) return;
           const track = activeStream.getVideoTracks()[0];
@@ -281,12 +582,11 @@
           const x = (e.clientX - rect.left) / rect.width;
           const y = (e.clientY - rect.top) / rect.height;
 
-          // フォーカスリングをタップ位置に表示
           focusRing.style.left = (e.clientX - rect.left) + "px";
           focusRing.style.top  = (e.clientY - rect.top)  + "px";
           focusRing.style.display = "block";
           focusRing.style.animation = "none";
-          void focusRing.offsetWidth; // reflow
+          void focusRing.offsetWidth; 
           focusRing.style.animation = "focus-flash 0.4s ease-out";
           setTimeout(() => { focusRing.style.display = "none"; }, 800);
 
@@ -294,22 +594,18 @@
             const advanced = [{ focusMode: "single-shot" }];
             if (caps.pointOfInterest) advanced[0].pointOfInterest = { x, y };
             await track.applyConstraints({ advanced });
-          } catch (_) {
-            // デバイスが非対応でも無視
-          }
+          } catch (_) {}
         });
 
-        // ヒントを3秒後に非表示
         setTimeout(() => { focusHint.style.opacity = "0"; focusHint.style.transition = "opacity 1s"; }, 3000);
         
         requestAnimationFrame(tick);
         scanning = true;
-        btnStart.innerText = "Scanning...";
-        btnStart.disabled = true;
         statusEl.innerText = "読み取り中... 📱";
         blocksEl.innerHTML = "";
       } catch (err) {
-        alert("カメラへのアクセスが必要です（設定を確認してください）\n詳細: " + err.message);
+        alert("カメラエラー詳細: " + err.message);
+        switchView(1); // エラー時はSetupへ戻す
       }
     });
 
@@ -323,11 +619,13 @@
         const CHAR_RX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
         const CHAR_TX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a9";
 
-        statusEl.innerText = "BLEを探しています...";
         const bleDevice = await navigator.bluetooth.requestDevice({
           filters: [{ namePrefix: "XIAO" }],
           optionalServices: [SERVICE_UUID]
         });
+
+        switchView(2); // BLE接続成功でActiveへ
+        document.getElementById("scanner-container").style.display = "none"; // カメラ表示は消す
 
         statusEl.innerText = "接続中...";
         const server = await bleDevice.gatt.connect();
@@ -342,7 +640,6 @@
         
         statusEl.innerText = "時刻同期OK。XIAOを操作してExport画面にしてください...";
 
-        // データ受信待機
         await txChar.startNotifications();
         
         let bleCompLen = 0;
@@ -350,16 +647,13 @@
         
         txChar.addEventListener("characteristicvaluechanged", (e) => {
           const value = new Uint8Array(e.target.value.buffer);
-          
           if (bleBuffer.length === 0) {
             let history_count = value[0];
             bleCompLen = 6 + (history_count * 3);
           }
-          
           for (let i=0; i<value.length; i++) {
             bleBuffer.push(value[i]);
           }
-          
           statusEl.innerText = `受信中... ${bleBuffer.length} / ${bleCompLen} bytes`;
           
           if (bleBuffer.length >= bleCompLen && !isComplete) {
@@ -370,7 +664,7 @@
 
       } catch(err) {
         alert("BLE接続エラー: " + err.message);
-        statusEl.innerText = "Waiting for Camera/BLE...";
+        switchView(1);
       }
     });
 
@@ -384,11 +678,13 @@
         const CHAR_RX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
         const CHAR_TX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a9";
 
-        statusEl.innerText = "AIログ用: BLEを探しています...";
         const bleDevice = await navigator.bluetooth.requestDevice({
           filters: [{ namePrefix: "XIAO" }],
           optionalServices: [SERVICE_UUID]
         });
+
+        switchView(2);
+        document.getElementById("scanner-container").style.display = "none";
 
         statusEl.innerText = "接続中...";
         const server = await bleDevice.gatt.connect();
@@ -396,7 +692,7 @@
         const rxChar = await service.getCharacteristic(CHAR_RX_UUID);
         const txChar = await service.getCharacteristic(CHAR_TX_UUID);
 
-        statusEl.innerText = "AIログ転送要求を送信中... (数分かかります。画面を閉じないでください)";
+        statusEl.innerText = "AIログ転送要求を送信中...";
         const enc = new TextEncoder();
         await rxChar.writeValue(enc.encode("GET_AI_LOG"));
         
@@ -410,15 +706,14 @@
         txChar.addEventListener("characteristicvaluechanged", (e) => {
           const value = new Uint8Array(e.target.value.buffer);
           
-          // 終了マーカーの判定
-          if (value.length === 3 && value[0] === 69 && value[1] === 79 && value[2] === 70) { // "EOF"
+          if (value.length === 3 && value[0] === 69 && value[1] === 79 && value[2] === 70) {
             txChar.stopNotifications();
             processAILogComplete(new Uint8Array(aiBuffer));
             return;
           }
           if (value.length === 9 && String.fromCharCode(...value) === "NO_AI_LOG") {
-            alert("マイコン内にAIログがまだありません。（数十分稼働させてから再度お試しください）");
-            statusEl.innerText = "AIログなし";
+            alert("マイコン内にAIログがまだありません。");
+            switchView(1);
             txChar.stopNotifications();
             return;
           }
@@ -426,34 +721,31 @@
           for (let i=0; i<value.length; i++) {
             aiBuffer.push(value[i]);
           }
-          
           let elapsedSec = Math.floor((Date.now() - receiveStartTime) / 1000);
           statusEl.innerText = `AIログ受信中... ${aiBuffer.length} bytes (${elapsedSec}秒経過)`;
         });
 
       } catch(err) {
         alert("AIログ転送エラー: " + err.message);
-        statusEl.innerText = "Waiting for Camera/BLE...";
+        switchView(1);
       }
     });
 
     function processAILogComplete(comp) {
       statusEl.innerText = `🎉 AIログ受信完了！ (${comp.length} bytes)`;
-      statusEl.style.color = "var(--accent)";
       
-      btnWrapper.innerHTML = `<button id="btn-dl-ai">🤖 AI用バイナリ(.bin)を保存</button>`;
-      const btnDlAi = document.getElementById("btn-dl-ai");
+      switchView(3);
+      // AIログの時はグラフを描画しない
+      document.getElementById("chart-container").style.display = "none";
       
-      // Blobを作成してダウンロード
+      const dlWrapper = document.getElementById("dl-btn-wrapper");
+      dlWrapper.innerHTML = `<button id="btn-dl-ai">🤖 AI用バイナリ(.bin)を保存</button>`;
+      
       let blob = new Blob([comp], { type: "application/octet-stream" });
-      let url = URL.createObjectURL(blob);
       
-      btnDlAi.onclick = () => {
-        let a = document.createElement("a");
-        a.href = url;
+      document.getElementById("btn-dl-ai").onclick = () => {
         let ts = Math.floor(Date.now() / 1000);
-        a.download = `ai_env_log_${ts}.bin`;
-        a.click();
+        downloadFileHelper(blob, `ai_env_log_${ts}.bin`);
       };
     }
 
@@ -470,9 +762,9 @@
       }
     }
 
-    // メインループ
     const scanLine = document.getElementById("scan-line");
     function setScanColor(color) {
+      if(!scanLine) return;
       scanLine.style.background = color;
       scanLine.style.boxShadow = `0 0 20px ${color}`;
     }
@@ -490,12 +782,10 @@
         });
 
         if (!code) {
-          // QR自体を認識できていない
-          setScanColor("var(--accent)"); // 緑
+          setScanColor("var(--accent)");
           if (!statusEl.innerText.includes("/")) statusEl.innerText = "読み取り中... 📱";
         } else if (!code.binaryData || code.binaryData.length < 2) {
-          // QRは見えているがバイナリデータが無い（テキストQR等）
-          setScanColor("#f59e0b"); // 黄色
+          setScanColor("#f59e0b");
           statusEl.innerText = "⚠️ QR検出：バイナリ属性なし";
         } else {
           let page = code.binaryData[0];
@@ -503,11 +793,10 @@
           let chunk = Array.from(code.binaryData.slice(2));
 
           if (total === 0 || total >= 50) {
-            setScanColor("#f59e0b"); // 黄色
+            setScanColor("#f59e0b");
             statusEl.innerText = `⚠️ QR検出：page=${page} total=${total} (不正)`;
           } else {
-            // 正しいXIAO形式
-            setScanColor("#34d399"); // 明るい緑
+            setScanColor("#34d399");
             initBlocks(total);
             if (page < total && !receivedPayloads[page]) {
               receivedPayloads[page] = chunk;
@@ -523,20 +812,12 @@
       if (!isComplete) requestAnimationFrame(tick);
     }
 
-    // 読み取り完了＆結合処理
     function processComplete(directBuffer = null) {
       scanning = false;
       if (video.srcObject) {
          const tracks = video.srcObject.getTracks();
          tracks.forEach(t => t.stop());
       }
-      
-      statusEl.innerText = "🎉 結合完了！";
-      statusEl.style.color = "var(--accent)";
-      document.getElementById("scan-line").style.display = "none";
-      
-      btnWrapper.innerHTML = `<button id="btn-dl">💾 CSVをダウンロード</button>`;
-      const btnDl = document.getElementById("btn-dl");
       
       let comp;
       if (directBuffer) {
@@ -550,33 +831,21 @@
       }
       
       let history_count = comp[0];
-      let history_head = comp[1];
-      let view = new DataView(comp.buffer);
-      let ts = view.getUint32(2, true); 
+      let ts = new DataView(comp.buffer).getUint32(2, true); 
       
-      let labels = [];
-      let temp_data = [];
-      let hum_data = [];
-      let di_data = [];
-      
+      let labels = [], temp_data = [], hum_data = [], di_data = [];
       let csv = "Timestamp,Temperature(C),Humidity(%),DiscomfortIndex\n";
-      let pos_t = 6;
-      let pos_h = 6 + history_count;
-      let pos_di = 6 + history_count * 2;
+      let pos_t = 6, pos_h = 6 + history_count, pos_di = 6 + history_count * 2;
       
       for(let i=0; i<history_count; i++) {
-        let t_raw = comp[pos_t + i];
-        let h_raw = comp[pos_h + i];
-        let di_raw = comp[pos_di + i];
-        
-        let temp = (t_raw / 5.0) + 10.0;
-        let hum = h_raw / 2.55;
-        let di = (di_raw / 4.0) + 30.0;
+        let temp = (comp[pos_t + i] / 5.0) + 10.0;
+        let hum = comp[pos_h + i] / 2.55;
+        let di = (comp[pos_di + i] / 4.0) + 30.0;
         
         let agoMins = (history_count - 1 - i) * 12;
         let pTime = new Date((ts - agoMins * 60) * 1000);
-        
         let pad = n => ('0'+n).slice(-2);
+        
         let timeStr = `${pTime.getFullYear()}-${pad(pTime.getMonth()+1)}-${pad(pTime.getDate())} ${pad(pTime.getHours())}:${pad(pTime.getMinutes())}:${pad(pTime.getSeconds())}`;
         let shortTimeStr = `${pad(pTime.getHours())}:${pad(pTime.getMinutes())}`;
         
@@ -584,16 +853,34 @@
         temp_data.push(temp.toFixed(1));
         hum_data.push(hum.toFixed(1));
         di_data.push(di);
-        
         csv += `${timeStr},${temp.toFixed(1)},${hum.toFixed(1)},${di.toFixed(1)}\n`;
       }
       
-      // UIの切り替え
-      document.getElementById("scanner-container").style.display = "none";
+      // 保存: AI分析用データ
+      const tempFloats = temp_data.map(v => parseFloat(v));
+      const humFloats = hum_data.map(v => parseFloat(v));
+      currentEnvData = {
+        labels: labels,
+        tempData: tempFloats,
+        humData: humFloats,
+        maxTemp: Math.max(...tempFloats).toFixed(1),
+        minTemp: Math.min(...tempFloats).toFixed(1),
+        avgTemp: (tempFloats.reduce((a, b) => a + b, 0) / tempFloats.length).toFixed(1),
+        avgHum: (humFloats.reduce((a, b) => a + b, 0) / humFloats.length).toFixed(1)
+      };
+
+      // UIフェーズの切り替え
+      switchView(3);
       const chartContainer = document.getElementById("chart-container");
       chartContainer.style.display = "block";
       
-      // DI凡例の追加
+      const dlWrapper = document.getElementById("dl-btn-wrapper");
+      dlWrapper.innerHTML = `<button id="btn-dl">💾 CSVをダウンロード</button>`;
+      
+      // AI分析ボタンの表示
+      btnAiAdvice.style.display = "block";
+      
+      // グラフとDI表示処理
       if (!document.getElementById("di-legend")) {
         const legend = document.createElement("div");
         legend.id = "di-legend";
@@ -608,19 +895,17 @@
         chartContainer.appendChild(legend);
       }
       
-      // DI集計の計算
       let hotCount = 0, comfortCount = 0, coldCount = 0;
       for (let d of di_data) {
         if (d >= 75) hotCount++;
         else if (d < 55) coldCount++;
         else comfortCount++;
       }
-      let totalCount = di_data.length || 1; // 0割対策
+      let totalCount = di_data.length || 1;
       let hotPct = ((hotCount / totalCount) * 100).toFixed(1);
       let comfortPct = ((comfortCount / totalCount) * 100).toFixed(1);
       let coldPct = ((coldCount / totalCount) * 100).toFixed(1);
 
-      // DI割合テーブルの追加
       let summaryEl = document.getElementById("di-summary");
       if (!summaryEl) {
         summaryEl = document.createElement("div");
@@ -642,23 +927,19 @@
         </table>
       `;
 
-      // DI背景描画用のカスタムプラグイン
       const diBackgroundPlugin = {
         id: 'diBackground',
         beforeDatasetsDraw: (chart) => {
           const { ctx, chartArea, scales: { x } } = chart;
           ctx.save();
-          
           for (let i = 0; i < di_data.length; i++) {
             const diValue = di_data[i];
-            let color = 'rgba(0, 0, 0, 0)'; // Default
-            
-            // 快適さの色分け
-            if (diValue >= 85) color = 'rgba(239, 68, 68, 0.35)';   // 危険 (赤)
-            else if (diValue >= 80) color = 'rgba(245, 158, 11, 0.3)'; // 警戒 (オレンジ)
-            else if (diValue >= 75) color = 'rgba(252, 211, 77, 0.25)'; // やや暑い (黄)
-            else if (diValue < 55) color = 'rgba(59, 130, 246, 0.25)'; // 寒い (青)
-            else color = 'rgba(16, 185, 129, 0.12)';                // 快適 (緑)
+            let color = 'rgba(0, 0, 0, 0)';
+            if (diValue >= 85) color = 'rgba(239, 68, 68, 0.35)';
+            else if (diValue >= 80) color = 'rgba(245, 158, 11, 0.3)';
+            else if (diValue >= 75) color = 'rgba(252, 211, 77, 0.25)';
+            else if (diValue < 55) color = 'rgba(59, 130, 246, 0.25)';
+            else color = 'rgba(16, 185, 129, 0.12)';
             
             const startX = x.getPixelForValue(i - 0.5);
             const endX = x.getPixelForValue(i + 0.5);
@@ -669,31 +950,19 @@
         }
       };
       
-      // グラフ描画
+      // 既存のグラフがあれば破棄してから新しく描画する
+      if (myChart) {
+        myChart.destroy();
+      }
+      
       const ctxChart = document.getElementById("chart").getContext("2d");
-      new Chart(ctxChart, {
+      myChart = new Chart(ctxChart, {
         type: 'line',
         data: {
           labels: labels,
           datasets: [
-            {
-              label: '温度 (°C)',
-              data: temp_data,
-              borderColor: '#10b981',
-              backgroundColor: 'rgba(16, 185, 129, 0.1)',
-              yAxisID: 'y',
-              tension: 0.3,
-              fill: false
-            },
-            {
-              label: '湿度 (%)',
-              data: hum_data,
-              borderColor: '#3b82f6',
-              backgroundColor: 'rgba(59, 130, 246, 0.1)',
-              yAxisID: 'y1',
-              tension: 0.3,
-              fill: false
-            }
+            { label: '温度 (°C)', data: temp_data, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', yAxisID: 'y', tension: 0.3, fill: false },
+            { label: '湿度 (%)', data: hum_data, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', yAxisID: 'y1', tension: 0.3, fill: false }
           ]
         },
         options: {
@@ -701,32 +970,23 @@
           interaction: { mode: 'index', intersect: false },
           scales: {
             x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.1)' } },
-            y: {
-              type: 'linear', display: true, position: 'left',
-              ticks: { color: '#10b981' }, grid: { color: 'rgba(255,255,255,0.1)' }
-            },
-            y1: {
-              type: 'linear', display: true, position: 'right',
-              ticks: { color: '#3b82f6' }, grid: { drawOnChartArea: false }
-            }
+            y: { type: 'linear', display: true, position: 'left', ticks: { color: '#10b981' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+            y1: { type: 'linear', display: true, position: 'right', ticks: { color: '#3b82f6' }, grid: { drawOnChartArea: false } }
           },
-          plugins: {
-            legend: { labels: { color: '#f8fafc' } }
-          }
+          plugins: { legend: { labels: { color: '#f8fafc' } } }
         },
         plugins: [diBackgroundPlugin]
       });
       
+      // ダウンロードの実行
       let blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      let url = URL.createObjectURL(blob);
-      
-      btnDl.onclick = () => {
-        let a = document.createElement("a");
-        a.href = url;
-        a.download = `env_history_${ts}.csv`;
-        a.click();
+      document.getElementById("btn-dl").onclick = () => {
+        downloadFileHelper(blob, `env_history_${ts}.csv`);
       };
     }
+    
+    // アプリ起動時の初期化
+    switchView(1);
   </script>
 </body>
 </html>
