@@ -518,8 +518,8 @@
       aiAdvicePanel.style.display = "flex";
       aiAdviceContent.innerHTML = `<span class="loading-dots">環境データをAIが分析中</span>`;
       
-      // 指定のモデルを Gemini 2.5 Flash Lite (preview識別子) に変更
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite-preview-09-2025:generateContent?key=${savedApiKey}`;
+     // 【最終修正】ご提示いただいた公式の正式版Liteモデルに変更しました
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${savedApiKey}`;
       
       const prompt = `
         あなたは優れた環境アドバイザーです。以下の測定された温湿度データに基づいて、現在の環境状態を評価し、健康や快適性を維持・向上させるためのアドバイスを、親しみやすいトーンで2〜3段落程度で簡潔に教えてください。
