@@ -384,7 +384,26 @@
     }
 
     // ダウンロードロジックのモバイル最適化ヘルパー関数
-    function downloadFileHelper(blob, filename) {
+    async function downloadFileHelper(blob, filename) {
+      // 1. Web Share APIがサポートされているかチェック（スマホブラウザ向け）
+      if (navigator.share && navigator.canShare) {
+        try {
+          const file = new File([blob], filename, { type: blob.type });
+          if (navigator.canShare({ files: [file] })) {
+            // OS標準の共有メニューを開く
+            await navigator.share({
+              title: 'XIAO ENV Data',
+              files: [file]
+            });
+            return; // 共有成功時はここで終了
+          }
+        } catch (err) {
+          console.warn("共有がキャンセルされたか、失敗しました:", err);
+          // 失敗した場合は下の通常のダウンロード処理へフォールバック
+        }
+      }
+
+      // 2. 通常のダウンロード処理（PC、またはShare API非対応ブラウザ向け）
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -392,10 +411,12 @@
       a.style.display = "none";
       document.body.appendChild(a); // DOMに追加（iOS Safari対策）
       a.click();
+      
+      // 【修正点】スマホの処理遅延を考慮し、URLの破棄を3秒後に延長
       setTimeout(() => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-      }, 100);
+      }, 3000); 
     }
 
     // アプリの状態をリセットする関数
