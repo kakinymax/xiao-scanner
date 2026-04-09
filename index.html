@@ -371,7 +371,7 @@
     let myChart = null; // チャートインスタンスを保持する変数
     let currentEnvData = null; // AIプロンプト用のデータ保持
 
-    // View의切り替え管理関数
+    // Viewの切り替え管理関数
     function switchView(phase) {
       document.getElementById("phase-setup").style.display = (phase === 1) ? "flex" : "none";
       document.getElementById("phase-active").style.display = (phase === 2) ? "flex" : "none";
@@ -412,7 +412,7 @@
       document.body.appendChild(a); // DOMに追加（iOS Safari対策）
       a.click();
       
-      // 【修正点】スマホの処理遅延を考慮し、URLの破棄を3秒後に延長
+      // スマホの処理遅延を考慮し、URLの破棄を3秒後に延長
       setTimeout(() => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
@@ -518,8 +518,8 @@
       aiAdvicePanel.style.display = "flex";
       aiAdviceContent.innerHTML = `<span class="loading-dots">環境データをAIが分析中</span>`;
       
-      // 一般公開されている標準モデル「gemini-2.5-flash」に変更
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${savedApiKey}`;
+      // 指定のモデルを Gemini 2.5 Flash Lite (preview識別子) に変更
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite-preview-09-2025:generateContent?key=${savedApiKey}`;
       
       const prompt = `
         あなたは優れた環境アドバイザーです。以下の測定された温湿度データに基づいて、現在の環境状態を評価し、健康や快適性を維持・向上させるためのアドバイスを、親しみやすいトーンで2〜3段落程度で簡潔に教えてください。
@@ -568,7 +568,7 @@
           throw new Error("カメラAPIがブロックされています。\nSafari(iOS)等の仕様により、カメラ機能はHTTPS環境でしか使用できません。");
         }
         
-        switchView(2); // カメラ起動時にActiveフェーズへ移行
+        switchView(2); 
         
         const constraints = { 
           video: {
@@ -593,7 +593,6 @@
           });
         }
 
-        // タップでフォーカス
         video.addEventListener("click", async (e) => {
           if (!activeStream) return;
           const track = activeStream.getVideoTracks()[0];
@@ -626,7 +625,7 @@
         blocksEl.innerHTML = "";
       } catch (err) {
         alert("カメラエラー詳細: " + err.message);
-        switchView(1); // エラー時はSetupへ戻す
+        switchView(1); 
       }
     });
 
@@ -645,8 +644,8 @@
           optionalServices: [SERVICE_UUID]
         });
 
-        switchView(2); // BLE接続成功でActiveへ
-        document.getElementById("scanner-container").style.display = "none"; // カメラ表示は消す
+        switchView(2); 
+        document.getElementById("scanner-container").style.display = "none"; 
 
         statusEl.innerText = "接続中...";
         const server = await bleDevice.gatt.connect();
@@ -654,7 +653,6 @@
         const rxChar = await service.getCharacteristic(CHAR_RX_UUID);
         const txChar = await service.getCharacteristic(CHAR_TX_UUID);
 
-        // 時刻同期
         const ts = Math.floor(Date.now() / 1000).toString();
         const enc = new TextEncoder();
         await rxChar.writeValue(enc.encode(ts));
@@ -756,7 +754,6 @@
       statusEl.innerText = `🎉 AIログ受信完了！ (${comp.length} bytes)`;
       
       switchView(3);
-      // AIログの時はグラフを描画しない
       document.getElementById("chart-container").style.display = "none";
       
       const dlWrapper = document.getElementById("dl-btn-wrapper");
@@ -877,7 +874,6 @@
         csv += `${timeStr},${temp.toFixed(1)},${hum.toFixed(1)},${di.toFixed(1)}\n`;
       }
       
-      // 保存: AI分析用データ
       const tempFloats = temp_data.map(v => parseFloat(v));
       const humFloats = hum_data.map(v => parseFloat(v));
       currentEnvData = {
@@ -890,7 +886,6 @@
         avgHum: (humFloats.reduce((a, b) => a + b, 0) / humFloats.length).toFixed(1)
       };
 
-      // UIフェーズの切り替え
       switchView(3);
       const chartContainer = document.getElementById("chart-container");
       chartContainer.style.display = "block";
@@ -898,10 +893,8 @@
       const dlWrapper = document.getElementById("dl-btn-wrapper");
       dlWrapper.innerHTML = `<button id="btn-dl">💾 CSVをダウンロード</button>`;
       
-      // AI分析ボタンの表示
       btnAiAdvice.style.display = "block";
       
-      // グラフとDI表示処理
       if (!document.getElementById("di-legend")) {
         const legend = document.createElement("div");
         legend.id = "di-legend";
@@ -971,7 +964,6 @@
         }
       };
       
-      // 既存のグラフがあれば破棄してから新しく描画する
       if (myChart) {
         myChart.destroy();
       }
@@ -999,14 +991,12 @@
         plugins: [diBackgroundPlugin]
       });
       
-      // ダウンロードの実行
       let blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       document.getElementById("btn-dl").onclick = () => {
         downloadFileHelper(blob, `env_history_${ts}.csv`);
       };
     }
     
-    // アプリ起動時の初期化
     switchView(1);
   </script>
 </body>
