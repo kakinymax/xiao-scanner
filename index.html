@@ -518,8 +518,8 @@
       aiAdvicePanel.style.display = "flex";
       aiAdviceContent.innerHTML = `<span class="loading-dots">環境データをAIが分析中</span>`;
       
-     // 【最終修正】ご提示いただいた公式の正式版Liteモデルに変更しました
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${savedApiKey}`;
+      // 指定のモデルを Gemini 2.5 Flash Lite (preview識別子) に変更
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite-preview-09-2025:generateContent?key=${savedApiKey}`;
       
       const prompt = `
         あなたは優れた環境アドバイザーです。以下の測定された温湿度データに基づいて、現在の環境状態を評価し、健康や快適性を維持・向上させるためのアドバイスを、親しみやすいトーンで2〜3段落程度で簡潔に教えてください。
@@ -757,13 +757,94 @@
       document.getElementById("chart-container").style.display = "none";
       
       const dlWrapper = document.getElementById("dl-btn-wrapper");
-      dlWrapper.innerHTML = `<button id="btn-dl-ai">🤖 AI用バイナリ(.bin)を保存</button>`;
+      dlWrapper.innerHTML = `
+        <button id="btn-dl-ai">💾 AI用バイナリ(.bin)を保存</button>
+        <button id="btn-ai-predict" style="background: linear-gradient(135deg, #ec4899, #be185d); margin-top: 10px;">🔮 1ヶ月データから未来予測 ✨</button>
+      `;
       
       let blob = new Blob([comp], { type: "application/octet-stream" });
       
       document.getElementById("btn-dl-ai").onclick = () => {
         let ts = Math.floor(Date.now() / 1000);
         downloadFileHelper(blob, `ai_env_log_${ts}.bin`);
+      };
+
+      document.getElementById("btn-ai-predict").onclick = async () => {
+        const savedApiKey = getApiKey();
+        if (!savedApiKey) {
+          alert("APIキーが設定されていません。\n右上の「⚙️設定」アイコンから入力・保存してください。");
+          return;
+        }
+
+        const btnPredict = document.getElementById("btn-ai-predict");
+        btnPredict.disabled = true;
+        
+        aiAdvicePanel.style.display = "flex";
+        aiAdviceContent.innerHTML = `<span class="loading-dots">1ヶ月のデータを解析して予測中</span>`;
+
+        try {
+          const view = new DataView(comp.buffer);
+          const recordCount = Math.floor(comp.length / 12);
+          
+          const dailySummary = [];
+          let currentDay = { temps: [], hums: [] };
+          
+          // 後ろから(最新から)遡る
+          for (let i = recordCount - 1; i >= 0; i--) {
+              let offset = i * 12;
+              let t = view.getFloat32(offset, true);
+              let h = view.getFloat32(offset + 4, true);
+              
+              currentDay.temps.push(t);
+              currentDay.hums.push(h);
+              
+              if (currentDay.temps.length === 1440 || i === 0) {
+                  let maxT = Math.max(...currentDay.temps).toFixed(1);
+                  let minT = Math.min(...currentDay.temps).toFixed(1);
+                  let avgT = (currentDay.temps.reduce((a,b)=>a+b,0)/currentDay.temps.length).toFixed(1);
+                  
+                  dailySummary.push(`・${dailySummary.length + 1}日前: 最高 ${maxT}℃ / 最低 ${minT}℃ / 平均 ${avgT}℃`);
+                  currentDay = { temps: [], hums: [] };
+              }
+          }
+          
+          // トークン節約のため最大30日分にする
+          const summaryText = dailySummary.slice(0, 30).reverse().join("\n");
+          
+          const prompt = `
+あなたは優れた環境データアナリストです。以下の過去約1ヶ月間の日ごとの温湿度データ（最高/最低/平均）に基づいて、
+「明日（あるいは今後数日）の予想最高・最低気温のトレンド予測」と「予測に基づく具体的な注意点（熱中症、カビ、寒さなど）」を提示してください。
+回答は親しみやすいトーンで、箇条書きなどを交えて簡潔にまとめてください。
+
+【過去のデータトレンド（古い順）】
+${summaryText}
+          `;
+
+          // API使用量を抑えるため、モデルは gemini-2.5-flash または flash-lite を使用
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite-preview-09-2025:generateContent?key=${savedApiKey}`;
+          const payload = {
+            contents: [{ parts: [{ text: prompt }] }],
+            systemInstruction: { parts: [{ text: "回答は日本語で提供してください。専門用語は避け、分かりやすい予測アドバイスを心がけてください。" }] }
+          };
+
+          const result = await fetchWithRetry(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          
+          const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text) {
+            aiAdviceContent.innerHTML = text.replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
+          } else {
+            aiAdviceContent.innerHTML = "予測データを正しく取得できませんでした。";
+          }
+        } catch (error) {
+          aiAdviceContent.innerHTML = `通信エラーが発生しました。<br><span style="font-size:0.75rem; color:#ef4444;">${error.message}</span>`;
+        } finally {
+          btnPredict.disabled = false;
+          btnPredict.innerText = "🔮 予測を再生成 ✨";
+        }
       };
     }
 
