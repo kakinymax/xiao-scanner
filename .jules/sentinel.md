@@ -12,14 +12,14 @@
 
 **Prevention:** Never store sensitive API keys in `localStorage`, `sessionStorage`, or cookies without `HttpOnly`. Rely on secure backend proxies for API communication, or design architectures that delegate the API interaction to a secure external client (like the official Gemini web app) via clipboard or intents.
 
+## 2026-05-20 - [Security Fix] Missing Subresource Integrity (SRI) on CDN Scripts
+
+**Vulnerability:** External scripts loaded from CDNs (`jsQR.min.js`, `Chart.js`) without integrity checks. This allowed potential execution of malicious code if the CDN was compromised, leading to XSS or data theft.
+**Learning:** Always use `integrity` and `crossorigin="anonymous"` attributes when loading external resources via CDN to verify their integrity and prevent unauthorized modifications. The `crossorigin` attribute ensures proper error logging and avoids exposing sensitive cross-origin data.
+**Prevention:** Pin dependencies to specific versions and calculate SHA-384 hashes using `openssl dgst -sha384 -binary | openssl base64 -A` to use for the `integrity` attribute. Add automated checks if possible to ensure new script tags include SRI.
+
 ## 2024-05-20 - [Insecure window.open for external link (prediction)]
 
 **Vulnerability:** `window.open` was used without `noopener` and `noreferrer` to open an external link. This could allow the newly opened page to access the `window.opener` object, potentially enabling it to navigate the original page to a malicious URL or access sensitive information if the external site is compromised or malicious.
 **Learning:** Whenever opening external, untrusted links using `window.open` or `<a target="_blank">`, it is crucial to severe the connection between the original page and the new tab/window to prevent Reverse Tabnabbing and information leakage.
 **Prevention:** Always append `"noopener,noreferrer"` as the third argument to `window.open`, or use `rel="noopener noreferrer"` for `<a>` tags when linking to external resources.
-
-## 2024-06-25 - [Missing Subresource Integrity (SRI) on External Scripts]
-
-**Vulnerability:** The application was loading external JavaScript dependencies (`jsQR`, `chart.js`) from a CDN without using Subresource Integrity (SRI). Furthermore, `chart.js` did not have a version pinned. This creates a risk where if the CDN is compromised, or a malicious version is pushed as "latest", the application would execute the attacker's code, leading to XSS or data exfiltration.
-**Learning:** Loading third-party scripts without verification blindly trusts the provider. Even reputable CDNs can be compromised or hijacked. Pinning versions ensures stability, and SRI ensures that the file content exactly matches what the developer expected when the integration was tested.
-**Prevention:** Always pin dependencies to specific versions and add `integrity` attributes with cryptographic hashes to `<script>` and `<link>` tags loading external resources. Ensure `crossorigin="anonymous"` is also set to prevent credential leaks.
