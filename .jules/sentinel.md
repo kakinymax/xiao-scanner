@@ -9,3 +9,8 @@
 **Learning:** When a client-side application requires interacting with an API that uses secrets, it's safer to avoid storing the secret on the client entirely if a secure backend proxy cannot be established. For applications integrating with external AI chat platforms (like Gemini), a "semi-automatic" workflow that generates the prompt and copies it to the clipboard, then redirects the user to the platform's UI, is a highly secure alternative that requires zero secret storage.
 
 **Prevention:** Never store sensitive API keys in `localStorage`, `sessionStorage`, or cookies without `HttpOnly`. Rely on secure backend proxies for API communication, or design architectures that delegate the API interaction to a secure external client (like the official Gemini web app) via clipboard or intents.
+
+## 2026-05-20 - [Security] Fix insecure window.open for external links
+ **Vulnerability:** Using `window.open` without `noopener,noreferrer` when opening external links allows the newly opened page to have partial access to the original page's `window` object via `window.opener`, posing a security and performance risk (e.g. cross-site reverse tabnabbing).
+ **Learning:** Always specify `noopener,noreferrer` when opening external URLs using `window.open`.
+ **Prevention:** Ensure code reviews check for the presence of `noopener` and `noreferrer` whenever `target="_blank"` or `window.open` is used.
