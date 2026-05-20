@@ -380,6 +380,7 @@
 
       let activeStream = null;
       let scanning = false;
+      window.getTestState = () => ({ expectedPages, receivedPayloads });
       let expectedPages = 0;
       let receivedPayloads = [];
       let isComplete = false;
@@ -828,7 +829,7 @@ ${summaryText}`;
         };
       }
 
-      function initBlocks(total) {
+      window.initBlocks = function initBlocks(total) {
         if (expectedPages === total) return;
         expectedPages = total;
         receivedPayloads = new Array(total).fill(null);
@@ -839,7 +840,7 @@ ${summaryText}`;
           b.id = "block-" + i;
           blocksEl.appendChild(b);
         }
-      }
+      };
 
       const scanLine = document.getElementById("scan-line");
       function setScanColor(color) {
