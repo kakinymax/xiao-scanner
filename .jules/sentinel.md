@@ -9,3 +9,8 @@
 **Learning:** When a client-side application requires interacting with an API that uses secrets, it's safer to avoid storing the secret on the client entirely if a secure backend proxy cannot be established. For applications integrating with external AI chat platforms (like Gemini), a "semi-automatic" workflow that generates the prompt and copies it to the clipboard, then redirects the user to the platform's UI, is a highly secure alternative that requires zero secret storage.
 
 **Prevention:** Never store sensitive API keys in `localStorage`, `sessionStorage`, or cookies without `HttpOnly`. Rely on secure backend proxies for API communication, or design architectures that delegate the API interaction to a secure external client (like the official Gemini web app) via clipboard or intents.
+
+## 2026-05-20 - [Security Fix] Missing Subresource Integrity (SRI) on CDN Scripts
+**Vulnerability:** External scripts loaded from CDNs (`jsQR.min.js`, `Chart.js`) without integrity checks. This allowed potential execution of malicious code if the CDN was compromised, leading to XSS or data theft.
+**Learning:** Always use `integrity` and `crossorigin="anonymous"` attributes when loading external resources via CDN to verify their integrity and prevent unauthorized modifications. The `crossorigin` attribute ensures proper error logging and avoids exposing sensitive cross-origin data.
+**Prevention:** Pin dependencies to specific versions and calculate SHA-384 hashes using `openssl dgst -sha384 -binary | openssl base64 -A` to use for the `integrity` attribute. Add automated checks if possible to ensure new script tags include SRI.
