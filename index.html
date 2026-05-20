@@ -529,7 +529,12 @@
           alert(
             "✅ 分析用のデータをクリップボードにコピーしました。\n\nGeminiが開いたら、入力欄に「ペースト（貼り付け）」して送信してください。",
           );
-          window.open("https://gemini.google.com/", "_blank");
+          // 外部サイト(Gemini)を安全に開くための対策 (移動先から元の画面を操作されないようにする)
+          window.open(
+            "https://gemini.google.com/",
+            "_blank",
+            "noopener,noreferrer",
+          );
         } catch (error) {
           alert(
             "クリップボードへのコピーに失敗しました。手動でコピーしてください:\n\n" +
@@ -815,7 +820,12 @@ ${summaryText}`;
             alert(
               "✅ 予測用のデータをクリップボードにコピーしました。\n\nGeminiが開いたら、入力欄に「ペースト（貼り付け）」して送信してください。",
             );
-            window.open("https://gemini.google.com/", "_blank");
+            // 外部サイト(Gemini)を安全に開くための対策 (移動先から元の画面を操作されないようにする)
+            window.open(
+              "https://gemini.google.com/",
+              "_blank",
+              "noopener,noreferrer",
+            );
           } catch (error) {
             alert(
               "クリップボードへのコピーに失敗しました。手動でコピーしてください:\n\n" +
