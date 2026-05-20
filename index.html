@@ -614,27 +614,31 @@
         }
       });
 
+      // BLEデバイスへの接続を処理する共通関数
+      async function connectBLEDevice() {
+        const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+        const CHAR_RX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+        const CHAR_TX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a9";
+
+        if (!bleDevice || !bleDevice.gatt.connected) {
+          bleDevice = await navigator.bluetooth.requestDevice({
+            filters: [{ namePrefix: "XIAO" }],
+            optionalServices: [SERVICE_UUID],
+          });
+          const server = await bleDevice.gatt.connect();
+          const service = await server.getPrimaryService(SERVICE_UUID);
+          bleRxChar = await service.getCharacteristic(CHAR_RX_UUID);
+          bleTxChar = await service.getCharacteristic(CHAR_TX_UUID);
+        }
+      }
+
       // BLE起動処理
       btnBle.addEventListener("click", async () => {
         if (scanning && !isComplete) return;
         if (isComplete) return;
 
         try {
-          const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
-          const CHAR_RX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
-          const CHAR_TX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a9";
-
-          // 既に接続済みの場合はデバイス選択ダイアログをスキップして再利用
-          if (!bleDevice || !bleDevice.gatt.connected) {
-            bleDevice = await navigator.bluetooth.requestDevice({
-              filters: [{ namePrefix: "XIAO" }],
-              optionalServices: [SERVICE_UUID],
-            });
-            const server = await bleDevice.gatt.connect();
-            const service = await server.getPrimaryService(SERVICE_UUID);
-            bleRxChar = await service.getCharacteristic(CHAR_RX_UUID);
-            bleTxChar = await service.getCharacteristic(CHAR_TX_UUID);
-          }
+          await connectBLEDevice();
 
           switchView(2);
           document.getElementById("scanner-container").style.display = "none";
@@ -681,21 +685,7 @@
         if (isComplete) return;
 
         try {
-          const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
-          const CHAR_RX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
-          const CHAR_TX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a9";
-
-          // 既に接続済みの場合はデバイス選択ダイアログをスキップして再利用
-          if (!bleDevice || !bleDevice.gatt.connected) {
-            bleDevice = await navigator.bluetooth.requestDevice({
-              filters: [{ namePrefix: "XIAO" }],
-              optionalServices: [SERVICE_UUID],
-            });
-            const server = await bleDevice.gatt.connect();
-            const service = await server.getPrimaryService(SERVICE_UUID);
-            bleRxChar = await service.getCharacteristic(CHAR_RX_UUID);
-            bleTxChar = await service.getCharacteristic(CHAR_TX_UUID);
-          }
+          await connectBLEDevice();
 
           switchView(2);
           document.getElementById("scanner-container").style.display = "none";
