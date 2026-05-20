@@ -848,11 +848,32 @@ ${summaryText}`;
         scanLine.style.boxShadow = `0 0 20px ${color}`;
       }
 
+      // サイズ計算のキャッシュ用変数
+      let cachedVideoWidth = 0;
+      let cachedVideoHeight = 0;
+      let cachedNewWidth = 0;
+      let cachedNewHeight = 0;
+
       function tick() {
         if (!scanning) return;
         if (video.readyState === video.HAVE_ENOUGH_DATA && !isComplete) {
-          canvas.width = Math.min(video.videoWidth, 600);
-          canvas.height = canvas.width * (video.videoHeight / video.videoWidth);
+          // ビデオのサイズが変わった時（または初回）のみサイズを再計算
+          if (
+            video.videoWidth !== cachedVideoWidth ||
+            video.videoHeight !== cachedVideoHeight
+          ) {
+            cachedVideoWidth = video.videoWidth;
+            cachedVideoHeight = video.videoHeight;
+            cachedNewWidth = Math.min(cachedVideoWidth, 600);
+            cachedNewHeight = Math.floor(
+              cachedNewWidth * (cachedVideoHeight / cachedVideoWidth),
+            );
+          }
+
+          if (canvas.width !== cachedNewWidth) canvas.width = cachedNewWidth;
+          if (canvas.height !== cachedNewHeight)
+            canvas.height = cachedNewHeight;
+
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
           let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
