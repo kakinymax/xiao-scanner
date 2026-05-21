@@ -968,6 +968,8 @@ ${summaryText}`;
           pos_h = 6 + history_count,
           pos_di = 6 + history_count * 2;
 
+        let pad = (n) => ("0" + n).slice(-2);
+
         for (let i = 0; i < history_count; i++) {
           let temp = comp[pos_t + i] / 5.0 + 10.0;
           let hum = comp[pos_h + i] / 2.55;
@@ -975,7 +977,6 @@ ${summaryText}`;
 
           let agoMins = (history_count - 1 - i) * 12;
           let pTime = new Date((ts - agoMins * 60) * 1000);
-          let pad = (n) => ("0" + n).slice(-2);
 
           let timeStr = `${pTime.getFullYear()}-${pad(pTime.getMonth() + 1)}-${pad(pTime.getDate())} ${pad(pTime.getHours())}:${pad(pTime.getMinutes())}:${pad(pTime.getSeconds())}`;
           let shortTimeStr = `${pad(pTime.getHours())}:${pad(pTime.getMinutes())}`;
