@@ -30,3 +30,7 @@
  **Vulnerability:** `window.open` was used without `noopener` and `noreferrer` to open an external link. This could allow the newly opened page to access the `window.opener` object, potentially enabling it to navigate the original page to a malicious URL or access sensitive information if the external site is compromised or malicious.
  **Learning:** Whenever opening external, untrusted links using `window.open` or `<a target="_blank">`, it is crucial to severe the connection between the original page and the new tab/window to prevent Reverse Tabnabbing and information leakage.
  **Prevention:** Always append `"noopener,noreferrer"` as the third argument to `window.open`, or use `rel="noopener noreferrer"` for `<a>` tags when linking to external resources.
+## 2025-02-15 - Buffer Overflow Prevention with snprintf
+ **Vulnerability:** `sprintf` was used to write string data into fixed-size buffers, posing a risk of buffer overflow if the source data exceeds the buffer size.
+ **Learning:** In C/C++, relying on `sprintf` for string formatting into statically allocated arrays is a common source of memory corruption vulnerabilities.
+ **Prevention:** Always use `snprintf` with `sizeof(buffer)` when formatting strings into fixed-size buffers. This safely truncates the string if it exceeds the boundary, avoiding data overflow.
