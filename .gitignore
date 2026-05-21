@@ -1,1 +1,23 @@
-node_modules/
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Arduino / MCU Build artifacts
+build/
+bin/
+*.elf
+*.hex
+*.bin.gz
+*.o
+*.d
+
+# Local config / API Keys (Prevent committing sensitive keys)
+.env
+api_key.txt

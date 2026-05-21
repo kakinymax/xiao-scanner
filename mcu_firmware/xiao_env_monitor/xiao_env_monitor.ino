@@ -1,9 +1,8 @@
 // ========================
 // ====================================
-// XIAO ESP32C3 AI Data Collector v3.1 (TinyML Prediction)
+// XIAO ESP32C3 環境モニター v2.0
 // Hardware: XIAO ESP32C3 + Expansion Base + Grove AHT20
-// Features: 温湿度/不快指数/トレンド表示/BLE + AI学習用1分ログ(LittleFS)
-//           + TinyML(RandomForest)による1時間後温度予測
+// Features: 温湿度/不快指数/トレンドグラフ/ブザー/QRエクスポート/BLE
 // ============================================================
 
 
@@ -16,28 +15,20 @@
 #include <BLE2902.h>
 #include <RTClib.h>
 #include <Preferences.h>
-#include <LittleFS.h>
 #include "esp_idf_version.h"
 #include "qrcode.h"
 #include "driver/gpio.h"
-#include "model.h"  // TinyML予測モデル
-
-// --- TinyMLオブジェクト ---
-Eloquent::ML::Port::RandomForestRegressor mlModel;
 
 // --- ピン定義 ---
 #define BUTTON_PIN  3
 #define BUZZER_PIN  5
 
 // --- 設定 ---
-// 表用（OLED/QR）: 12分おき × 120点 = 24時間分
-#define UI_MAX_HISTORY 120
-// 裏用（AIログ一時保持用）: 1分おき × 120点 = 2時間分
-#define AI_MAX_BUFFER 120
-
-// AIロギング定数
-#define AI_LOG_FILE "/ai_env_log.bin"
-#define AI_MAX_TOTAL_POINTS 44640 // 1ヶ月分 (31d * 24h * 60m)
+#define MAX_HISTORY 120
+#define BATTERY_MONITOR_ENABLED false
+#if BATTERY_MONITOR_ENABLED
+#define BATTERY_PIN A0
+#endif
 
 // --- グラフ描画定数 ---
 #define GX_LEFT   28
@@ -47,26 +38,15 @@ Eloquent::ML::Port::RandomForestRegressor mlModel;
 #define GY_TLABEL 63
 
 // --- RTCメモリ変数（ディープスリープ保持）---
-// 1. 表用データ (24H分の間引かれたデータ)
-RTC_DATA_ATTR float ui_temp_history[UI_MAX_HISTORY];
-RTC_DATA_ATTR float ui_hum_history[UI_MAX_HISTORY];
-RTC_DATA_ATTR float ui_di_history[UI_MAX_HISTORY];
-RTC_DATA_ATTR int ui_history_head = 0;
-RTC_DATA_ATTR int ui_history_count = 0;
-
-// 2. 裏用データ (2H分の一時バッファ)
-RTC_DATA_ATTR float ai_temp_buffer[AI_MAX_BUFFER];
-RTC_DATA_ATTR float ai_hum_buffer[AI_MAX_BUFFER];
-RTC_DATA_ATTR float ai_di_buffer[AI_MAX_BUFFER];
-RTC_DATA_ATTR int ai_buffer_count = 0;
-
-// 3. 状態管理
+RTC_DATA_ATTR float temp_history[MAX_HISTORY];
+RTC_DATA_ATTR float hum_history[MAX_HISTORY];
+RTC_DATA_ATTR float di_history[MAX_HISTORY];
+RTC_DATA_ATTR int history_head = 0;
+RTC_DATA_ATTR int history_count = 0;
 RTC_DATA_ATTR int display_mode = 0;   // 0:NOW 1:Temp 2:Hum 3:DI 4:Export
 RTC_DATA_ATTR int trend_range = 0;    // 0:24h 1:12h 2:6h
-RTC_DATA_ATTR int alert_flags = 0;
-RTC_DATA_ATTR int total_ai_points = 0; // LittleFSに書き込んだ累計点数
-RTC_DATA_ATTR int ai_unsaved_count = 0; // 保存待ちの点数
-RTC_DATA_ATTR int last_ui_minute_recorded = -1; // UIデータを最後に記録した「分」
+RTC_DATA_ATTR int backup_count = 0;
+RTC_DATA_ATTR uint8_t alert_flags = 0;
 
 // --- グローバルオブジェクト ---
 Adafruit_AHTX0 aht;
@@ -79,7 +59,6 @@ BLEServer* pServer = NULL;
 BLECharacteristic* pTxCharacteristic = NULL;
 bool deviceConnected = false;
 bool timeUpdated = false;
-bool aiTransferMode = false; // AIデータ全送信モード
 
 #define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define CHAR_UUID_RX        "beb5483e-36e1-4688-b7f5-ea07361b26a8"
@@ -95,14 +74,8 @@ class MyCallbacks: public BLECharacteristicCallbacks {
     String rx = pC->getValue();
     if (rx.length() > 0) {
       rx.trim();
-      // コマンド処理
-      if (rx == "GET_AI_LOG") {
-        aiTransferMode = true; // AIログ送信要求フラグ
-      } else {
-        // 時刻同期処理
-        long ut = rx.toInt();
-        if (ut > 1700000000) { rtc.adjust(DateTime(ut)); timeUpdated = true; }
-      }
+      long ut = rx.toInt();
+      if (ut > 1700000000) { rtc.adjust(DateTime(ut)); timeUpdated = true; }
     }
   }
 };
@@ -110,18 +83,16 @@ class MyCallbacks: public BLECharacteristicCallbacks {
 // ============================================================
 // Forward declarations
 // ============================================================
-void loadUIHistory();
-void saveUIHistory();
-void flushAIBufferToFS();
+void loadHistory();
+void saveHistory();
 void recordData(float t, float h);
 float calcDI(float t, float h);
 const char* getComfortLabel(float t, float h, float di);
 void buzzTone(int freq, int dur, int count);
 void checkBuzzerAlert(float t, float h, float di);
-int compressUIHistoryData(uint8_t* buf);
+int compressHistoryData(uint8_t* buf);
 void startBLEServer();
-void sendBLEUIHistory();
-void sendBLEAILog();
+void sendBLEHistory();
 void drawScreen(int mode, float t, float h);
 void drawNowScreen(float t, float h);
 void drawGraphScreen(int mode, float t, float h);
@@ -147,24 +118,10 @@ void setup() {
   esp_sleep_wakeup_cause_t wr = esp_sleep_get_wakeup_cause();
 
   if (wr == ESP_SLEEP_WAKEUP_UNDEFINED) {
-    // 初回起動時の読み出し
-    loadUIHistory();
+    loadHistory();
   }
 
-  // LittleFSのマウント (失敗時はフォーマット)
-  if (!LittleFS.begin(true)) {
-    // フォーマットが行われた場合、累計点数をリセット
-    total_ai_points = 0;
-  } else {
-    // 初回ではない場合、ファイルサイズから現在の蓄積点数を概算
-    File file = LittleFS.open(AI_LOG_FILE, FILE_READ);
-    if(file) {
-      total_ai_points = file.size() / 12; // 12 bytes per record (3 floats)
-      file.close();
-    }
-  }
-
-  delay(40); // AHT20安定化
+  delay(40); // AHT20安定化（データシート準拠）
 
   if (!aht.begin()) {
     if (wr == ESP_SLEEP_WAKEUP_GPIO) {
@@ -185,28 +142,22 @@ void setup() {
   float h = humidity.relative_humidity;
 
   if (wr == ESP_SLEEP_WAKEUP_TIMER || wr == ESP_SLEEP_WAKEUP_UNDEFINED) {
-    // --- タイマー起動 (1分おき) or 初回起動 ---
-    
-    // 1. データ記録メインルーチン (表・裏への振り分け)
+    // --- タイマー起動 or 初回起動 ---
     recordData(t, h);
-
-    // 2. ブザー警告
     float di = calcDI(t, h);
     checkBuzzerAlert(t, h, di);
 
-    // 3. 一括Flash保存 (2時間おき)
-    if (ai_unsaved_count >= AI_MAX_BUFFER) { 
-      flushAIBufferToFS(); // 裏ログをファイルへ
-      saveUIHistory();     // 表ログをPreferencesへ
+    backup_count++;
+    if (backup_count >= 10) { // 2時間ごとフラッシュ保存
+      saveHistory();
+      backup_count = 0;
     }
   }
   else if (wr == ESP_SLEEP_WAKEUP_GPIO) {
     // --- ボタン起動 ---
     u8g2.begin();
     startBLEServer();
-    
-    // 手動起動時にも安全のため現在の状態を退避
-    saveUIHistory();
+    saveHistory();
 
     display_mode = 0; // 起動時は一番初めの画面（NOW画面）に戻る
     drawScreen(display_mode, t, h);
@@ -223,25 +174,23 @@ void setup() {
         while (digitalRead(BUTTON_PIN) == LOW) {
           if (millis() - pressStart > 5000 && !superLong) {
             superLong = true;
-            // 全履歴リセット (UI & AI)
-            ui_history_count = 0; ui_history_head = 0;
-            ai_buffer_count = 0;  alert_flags = 0; total_ai_points = 0;
-            memset(ui_temp_history, 0, sizeof(ui_temp_history));
-            memset(ui_hum_history, 0, sizeof(ui_hum_history));
-            memset(ui_di_history, 0, sizeof(ui_di_history));
-            saveUIHistory();
-            LittleFS.remove(AI_LOG_FILE); // AIログファイル削除
-
+            // 履歴リセット
+            history_count = 0; history_head = 0;
+            backup_count = 0; alert_flags = 0;
+            memset(temp_history, 0, sizeof(temp_history));
+            memset(hum_history, 0, sizeof(hum_history));
+            memset(di_history, 0, sizeof(di_history));
+            saveHistory();
             u8g2.clearBuffer();
             u8g2.setFont(u8g2_font_ncenB10_tr);
-            u8g2.drawStr(5, 35, "All Cleared!");
+            u8g2.drawStr(5, 35, "Cleared!");
             u8g2.sendBuffer();
             delay(1500);
             display_mode = 0;
             drawScreen(display_mode, t, h);
             break;
           }
-          if (millis() - abs_start > 120000 && !aiTransferMode) break;
+          if (millis() - abs_start > 120000) break;
           delay(10);
         }
 
@@ -253,25 +202,21 @@ void setup() {
             u8g2.clearBuffer();
             u8g2.setFont(u8g2_font_ncenB10_tr);
             int rh[] = {24, 12, 6};
-            char rs[16]; snprintf(rs, sizeof(rs), "Range: %dh", rh[trend_range]);
+            char rs[16]; sprintf(rs, "Range: %dh", rh[trend_range]);
             u8g2.drawStr(15, 35, rs);
             u8g2.sendBuffer();
             delay(800);
             drawScreen(display_mode, t, h);
           } else {
             // 短押し: モード切替
-            display_mode = (display_mode + 1) % 6; 
+            display_mode = (display_mode + 1) % 6; // Prediction画面を追加したため %6 に変更
             drawScreen(display_mode, t, h);
-            
-            // Export画面から自動/手動でMode 0に戻った場合、即座に再描画
-            if (display_mode == 0) drawScreen(display_mode, t, h);
           }
         }
         wake_time = millis(); // ボタン操作でスリープタイマーをリセット
         delay(50);
       }
 
-      // スマホから時刻同期要求がきた
       if (timeUpdated) {
         u8g2.clearBuffer();
         u8g2.setFont(u8g2_font_ncenB10_tr);
@@ -283,29 +228,8 @@ void setup() {
         wake_time = millis();
       }
 
-      // スマホからAIバルク転送要求がきた
-      if (aiTransferMode) {
-        u8g2.clearBuffer();
-        u8g2.setFont(u8g2_font_5x7_tr);
-        u8g2.drawStr(10, 20, "AI Transfer Mode");
-        u8g2.drawStr(10, 35, "Don't turn off...");
-        u8g2.sendBuffer();
-        
-        sendBLEAILog(); // 時間がかかる処理
-        aiTransferMode = false;
-        
-        u8g2.clearBuffer();
-        u8g2.drawStr(10, 35, "Transfer DONE.");
-        u8g2.sendBuffer();
-        delay(2000);
-        drawScreen(display_mode, t, h);
-        wake_time = millis(); // 転送が終わったらタイムアウトをリセット
-      }
-
-      // スリープへの遷移判定 (転送中はスリープしない)
-      if (!aiTransferMode) {
-        if (millis() - wake_time > 60000) break; // 自動スリープを1分に変更
-      }
+      // 自動スリープを1分に変更
+      if (millis() - wake_time > 60000) break;
       delay(10);
     }
 
@@ -319,112 +243,39 @@ void setup() {
 void loop() {}
 
 // ============================================================
-// フラッシュ保存・復元 (Preferences = 表のデータ用)
+// フラッシュ保存・復元
 // ============================================================
-void loadUIHistory() {
+void loadHistory() {
   prefs.begin("env", true);
-  ui_history_head  = prefs.getInt("hd", 0);
-  ui_history_count = prefs.getInt("cnt", 0);
-  if (prefs.isKey("t")) prefs.getBytes("t", ui_temp_history, sizeof(ui_temp_history));
-  if (prefs.isKey("h")) prefs.getBytes("h", ui_hum_history, sizeof(ui_hum_history));
-  if (prefs.isKey("d")) prefs.getBytes("d", ui_di_history, sizeof(ui_di_history));
+  history_head  = prefs.getInt("hd", 0);
+  history_count = prefs.getInt("cnt", 0);
+  if (prefs.isKey("t")) prefs.getBytes("t", temp_history, sizeof(temp_history));
+  if (prefs.isKey("h")) prefs.getBytes("h", hum_history, sizeof(hum_history));
+  if (prefs.isKey("d")) prefs.getBytes("d", di_history, sizeof(di_history));
   prefs.end();
-  if (ui_history_head < 0 || ui_history_head >= UI_MAX_HISTORY) ui_history_head = 0;
-  if (ui_history_count < 0 || ui_history_count > UI_MAX_HISTORY) ui_history_count = 0;
+  if (history_head < 0 || history_head >= MAX_HISTORY) history_head = 0;
+  if (history_count < 0 || history_count > MAX_HISTORY) history_count = 0;
 }
 
-void saveUIHistory() {
+void saveHistory() {
   prefs.begin("env", false);
-  prefs.putInt("hd", ui_history_head);
-  prefs.putInt("cnt", ui_history_count);
-  prefs.putBytes("t", ui_temp_history, sizeof(ui_temp_history));
-  prefs.putBytes("h", ui_hum_history, sizeof(ui_hum_history));
-  prefs.putBytes("d", ui_di_history, sizeof(ui_di_history));
+  prefs.putInt("hd", history_head);
+  prefs.putInt("cnt", history_count);
+  prefs.putBytes("t", temp_history, sizeof(temp_history));
+  prefs.putBytes("h", hum_history, sizeof(hum_history));
+  prefs.putBytes("d", di_history, sizeof(di_history));
   prefs.end();
 }
 
 // ============================================================
-// フラッシュ保存 (LittleFS = 裏のAIデータ用)
-// ============================================================
-void flushAIBufferToFS() {
-  if (ai_unsaved_count == 0) return;
-
-  // ファイルを追記モードで開く
-  File file = LittleFS.open(AI_LOG_FILE, FILE_APPEND);
-  if (!file) {
-    file = LittleFS.open(AI_LOG_FILE, FILE_WRITE); // なければ作成
-    if(!file) return;
-  }
-
-  // 保存点数の決定 (最大バッファサイズ分)
-  int count_to_write = min(ai_unsaved_count, AI_MAX_BUFFER);
-  
-  // 保存対象が限界を超えたらリセット
-  if (total_ai_points + count_to_write > AI_MAX_TOTAL_POINTS) {
-    file.close();
-    LittleFS.remove(AI_LOG_FILE);
-    file = LittleFS.open(AI_LOG_FILE, FILE_WRITE);
-    total_ai_points = 0;
-  }
-
-  // 保存待ちのデータを末尾からさかのぼって書き込む
-  int start_idx = ai_buffer_count - count_to_write;
-  if (start_idx < 0) start_idx = 0;
-
-  for (int i = start_idx; i < ai_buffer_count; i++) {
-    file.write((uint8_t*)&ai_temp_buffer[i], sizeof(float));
-    file.write((uint8_t*)&ai_hum_buffer[i], sizeof(float));
-    file.write((uint8_t*)&ai_di_buffer[i], sizeof(float));
-  }
-  
-  file.close();
-  
-  // 更新
-  total_ai_points += count_to_write;
-  ai_unsaved_count = 0; // 保存待ちカウントだけリセット（メモリ内のバッファは維持）
-}
-
-// ============================================================
-// データ記録 (デュアル・ロギング)
+// データ記録
 // ============================================================
 void recordData(float t, float h) {
-  float di = calcDI(t, h);
-  
-  DateTime now = rtc.now() + TimeSpan(0, 9, 0, 0); // JST
-  int current_min = now.minute();
-  
-  // 1. 裏 (AI用): 毎回(1分おき)記録
-  if (ai_buffer_count < AI_MAX_BUFFER) {
-    ai_temp_buffer[ai_buffer_count] = t;
-    ai_hum_buffer[ai_buffer_count] = h;
-    ai_di_buffer[ai_buffer_count] = di;
-    ai_buffer_count++;
-  } else {
-    // メモリがいっぱいの場合は、古いものを捨てて詰める (リングバッファ)
-    for (int i = 0; i < AI_MAX_BUFFER - 1; i++) {
-      ai_temp_buffer[i] = ai_temp_buffer[i + 1];
-      ai_hum_buffer[i] = ai_hum_buffer[i + 1];
-      ai_di_buffer[i] = ai_di_buffer[i + 1];
-    }
-    ai_temp_buffer[AI_MAX_BUFFER - 1] = t;
-    ai_hum_buffer[AI_MAX_BUFFER - 1] = h;
-    ai_di_buffer[AI_MAX_BUFFER - 1] = di;
-  }
-  ai_unsaved_count++; // 保存待ちカウントを増やす
-
-  // 2. 表 (UI用): 12分おきに記録 (0分, 12分, 24分...)
-  if (current_min % 12 == 0) {
-    // 同じ分に複数回記録されないようガード (手動連打防止)
-    if (last_ui_minute_recorded != current_min) {
-      ui_temp_history[ui_history_head] = t;
-      ui_hum_history[ui_history_head] = h;
-      ui_di_history[ui_history_head] = di;
-      ui_history_head = (ui_history_head + 1) % UI_MAX_HISTORY;
-      if (ui_history_count < UI_MAX_HISTORY) ui_history_count++;
-      
-      last_ui_minute_recorded = current_min;
-    }
-  }
+  temp_history[history_head] = t;
+  hum_history[history_head] = h;
+  di_history[history_head] = calcDI(t, h);
+  history_head = (history_head + 1) % MAX_HISTORY;
+  if (history_count < MAX_HISTORY) history_count++;
 }
 
 // ============================================================
@@ -475,39 +326,41 @@ void checkBuzzerAlert(float t, float h, float di) {
 }
 
 // ============================================================
-// データ圧縮（QR/BLE転送用 - UI履歴24H限定）
+// データ圧縮（QR/BLE転送用）
 // ============================================================
-int compressUIHistoryData(uint8_t* buf) {
+int compressHistoryData(uint8_t* buf) {
   DateTime now = rtc.now();
   uint32_t ts = now.unixtime();
-  buf[0] = (uint8_t)ui_history_count;
-  buf[1] = (uint8_t)ui_history_head;
+  buf[0] = (uint8_t)history_count;
+  buf[1] = (uint8_t)history_head;
   memcpy(&buf[2], &ts, 4);
-
-  int pos_temp = 6;
-  int pos_hum = 6 + ui_history_count;
-  int pos_di = 6 + ui_history_count * 2;
-
-  for (int i = 0; i < ui_history_count; i++) {
-    int idx = (ui_history_head - ui_history_count + i + UI_MAX_HISTORY * 2) % UI_MAX_HISTORY;
-    buf[pos_temp++] = constrain((int)((ui_temp_history[idx] - 10.0f) * 5.0f), 0, 255);
-    buf[pos_hum++] = constrain((int)(ui_hum_history[idx] * 2.55f), 0, 255);
-    buf[pos_di++] = constrain((int)((ui_di_history[idx] - 30.0f) * 4.0f), 0, 255);
+  int pos = 6;
+  for (int i = 0; i < history_count; i++) {
+    int idx = (history_head - history_count + i + MAX_HISTORY * 2) % MAX_HISTORY;
+    buf[pos++] = constrain((int)((temp_history[idx] - 10.0f) * 5.0f), 0, 255);
   }
-  return pos_di;
+  for (int i = 0; i < history_count; i++) {
+    int idx = (history_head - history_count + i + MAX_HISTORY * 2) % MAX_HISTORY;
+    buf[pos++] = constrain((int)(hum_history[idx] * 2.55f), 0, 255);
+  }
+  for (int i = 0; i < history_count; i++) {
+    int idx = (history_head - history_count + i + MAX_HISTORY * 2) % MAX_HISTORY;
+    buf[pos++] = constrain((int)((di_history[idx] - 30.0f) * 4.0f), 0, 255);
+  }
+  return pos;
 }
 
 // ============================================================
 // BLEサーバー
 // ============================================================
 void startBLEServer() {
-  BLEDevice::init("XIAO_RTC_SYNC"); // 名前はそのまま
+  BLEDevice::init("XIAO_RTC_SYNC");
   pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
 
   BLEService *pSvc = pServer->createService(SERVICE_UUID);
 
-  // 時刻書き込み & コマンド受信用
+  // 時刻書き込み用
   BLECharacteristic *pRx = pSvc->createCharacteristic(CHAR_UUID_RX, BLECharacteristic::PROPERTY_WRITE);
   pRx->setCallbacks(new MyCallbacks());
 
@@ -521,48 +374,16 @@ void startBLEServer() {
   pServer->getAdvertising()->start();
 }
 
-// 通常の同期送信（24H分の間引かれたデータ）
-void sendBLEUIHistory() {
+void sendBLEHistory() {
   if (!deviceConnected || !pTxCharacteristic) return;
   uint8_t comp[400];
-  int len = compressUIHistoryData(comp);
+  int len = compressHistoryData(comp);
   for (int i = 0; i < len; i += 20) {
     int chunk = min(20, len - i);
     pTxCharacteristic->setValue(&comp[i], chunk);
     pTxCharacteristic->notify();
     delay(50);
   }
-}
-
-// AI用全ログの生ファイル送信 (巨大データ)
-void sendBLEAILog() {
-  if (!deviceConnected || !pTxCharacteristic) return;
-
-  File file = LittleFS.open(AI_LOG_FILE, FILE_READ);
-  if (!file) {
-    // ログがなければ修了通知として短い文字列を送るなど
-    pTxCharacteristic->setValue("NO_AI_LOG");
-    pTxCharacteristic->notify();
-    return;
-  }
-
-  // 転送開始のメタデータ送信などの設計も可能ですが、
-  // ここではチャンク分割してひたすら送る例
-  uint8_t chunkBuf[20];
-  while(file.available()){
-    int bytesRead = file.read(chunkBuf, 20);
-    pTxCharacteristic->setValue(chunkBuf, bytesRead);
-    pTxCharacteristic->notify();
-    // 連続で送りすぎるとパケット落ちするため少し待つ
-    // BLE特性に合わせて調整が必要。(ここでは安全側に20ms)
-    delay(20); 
-  }
-  file.close();
-  
-  // 終了マーカー
-  delay(100);
-  pTxCharacteristic->setValue("EOF");
-  pTxCharacteristic->notify();
 }
 
 void drawPredictionScreen();
@@ -577,65 +398,14 @@ void drawScreen(int mode, float t, float h) {
   else drawExportScreen();
 }
 
-// --- Mode 4: Prediction (TinyML) ---
+// --- Mode 4: Prediction ---
 void drawPredictionScreen() {
   u8g2.clearBuffer();
-  u8g2.setFont(u8g2_font_5x7_tr);
-
-  // AIバッファに十分なデータがあるか確認（最低120分分必要）
-  if (ai_buffer_count < 120) {
-    u8g2.setFont(u8g2_font_ncenB10_tr);
-    u8g2.drawStr(5, 20, "Prediction");
-    u8g2.setFont(u8g2_font_5x7_tr);
-    char buf[28];
-    snprintf(buf, sizeof(buf), "Need %d more min", 120 - ai_buffer_count);
-    u8g2.drawStr(5, 40, buf);
-    u8g2.drawStr(5, 55, "Data collecting...");
-    u8g2.sendBuffer();
-    return;
-  }
-
-  // 入力ベクトルを構築（直近120分分のデータを平坦化: 120 x 3 = 360個）
-  // AIバッファは新しいデータが末尾に追加されるので、最新120点を使う
-  float input[360];
-  int start = ai_buffer_count - 120; // バッファの末尾120点の開始インデックス
-  for (int i = 0; i < 120; i++) {
-    input[i * 3 + 0] = ai_temp_buffer[start + i]; // Temp
-    input[i * 3 + 1] = ai_hum_buffer[start + i];  // Hum
-    input[i * 3 + 2] = ai_di_buffer[start + i];   // DI
-  }
-
-  // 推論実行（1時間後の予測温度）
-  float predicted_temp = mlModel.predict(input);
-
-  // 現在の不快指数と予測DIを簡易計算
-  float cur_t = ai_temp_buffer[ai_buffer_count - 1];
-  float cur_h = ai_hum_buffer[ai_buffer_count - 1];
-  float cur_di = ai_di_buffer[ai_buffer_count - 1];
-
-  // 表示
   u8g2.setFont(u8g2_font_ncenB10_tr);
-  u8g2.drawStr(0, 13, "AI Predict");
-
+  u8g2.drawStr(10, 20, "Prediction");
   u8g2.setFont(u8g2_font_5x7_tr);
-  char buf[28];
-
-  // 現在値
-  snprintf(buf, sizeof(buf), "Now:  %.1fC %.0f%%", cur_t, cur_h);
-  u8g2.drawStr(0, 28, buf);
-
-  // 1時間後の予測温度
-  snprintf(buf, sizeof(buf), "+1h:  %.1f C", predicted_temp);
-  u8g2.setFont(u8g2_font_ncenB10_tr);
-  u8g2.drawStr(0, 45, buf);
-
-  // 上昇/下降トレンドのコメント
-  u8g2.setFont(u8g2_font_5x7_tr);
-  float diff = predicted_temp - cur_t;
-  if (diff > 1.0f)       u8g2.drawStr(0, 60, "Trend: Rising");
-  else if (diff < -1.0f) u8g2.drawStr(0, 60, "Trend: Falling");
-  else                   u8g2.drawStr(0, 60, "Trend: Stable");
-
+  u8g2.drawStr(10, 40, "Max Temp: --.- C");
+  u8g2.drawStr(10, 55, "Data awaiting ML...");
   u8g2.sendBuffer();
 }
 
@@ -648,7 +418,7 @@ void drawNowScreen(float t, float h) {
   char timeStr[16] = "--:--";
   DateTime now = rtc.now() + TimeSpan(0, 9, 0, 0);
   if (now.year() >= 2024 && now.year() < 2050)
-    snprintf(timeStr, sizeof(timeStr), "%02d/%02d %02d:%02d", now.month(), now.day(), now.hour(), now.minute());
+    sprintf(timeStr, "%02d/%02d %02d:%02d", now.month(), now.day(), now.hour(), now.minute());
 
   u8g2.setFont(u8g2_font_5x7_tr);
   u8g2.drawStr(0, 7, label);
@@ -666,23 +436,24 @@ void drawNowScreen(float t, float h) {
   u8g2.sendBuffer();
 }
 
-// --- Mode 1-3: グラフ (UI履歴を使用) ---
+// --- Mode 1-3: グラフ ---
 void drawGraphScreen(int mode, float t, float h) {
   u8g2.clearBuffer();
 
   int maxDisp[] = {120, 60, 30};
-  int display_count = min(ui_history_count, maxDisp[trend_range]);
+  int display_count = min(history_count, maxDisp[trend_range]);
 
   // タイトル
   int rangeH[] = {24, 12, 6};
+  int elapsedH = (display_count * 12) / 60;
   const char* names[] = {"", "Temp", "Hum", "DI"};
   char title[24];
-  snprintf(title, sizeof(title), "%s (%dh)", names[mode], rangeH[trend_range]);
+  sprintf(title, "%s (%dh)", names[mode], rangeH[trend_range]);
 
   char timeStr[16] = "--:--";
   DateTime now = rtc.now() + TimeSpan(0, 9, 0, 0);
   if (now.year() >= 2024 && now.year() < 2050)
-    snprintf(timeStr, sizeof(timeStr), "%02d/%02d %02d:%02d", now.month(), now.day(), now.hour(), now.minute());
+    sprintf(timeStr, "%02d/%02d %02d:%02d", now.month(), now.day(), now.hour(), now.minute());
 
   u8g2.setFont(u8g2_font_5x7_tr);
   u8g2.drawStr(0, 7, title);
@@ -698,11 +469,11 @@ void drawGraphScreen(int mode, float t, float h) {
   // min/max算出
   float minv = 999, maxv = -999;
   for (int i = 0; i < display_count; i++) {
-    int idx = (ui_history_head - display_count + i + UI_MAX_HISTORY * 2) % UI_MAX_HISTORY;
+    int idx = (history_head - display_count + i + MAX_HISTORY * 2) % MAX_HISTORY;
     float v;
-    if (mode == 1) v = ui_temp_history[idx];
-    else if (mode == 2) v = ui_hum_history[idx];
-    else v = ui_di_history[idx];
+    if (mode == 1) v = temp_history[idx];
+    else if (mode == 2) v = hum_history[idx];
+    else v = di_history[idx];
     if (v < minv) minv = v;
     if (v > maxv) maxv = v;
   }
@@ -714,22 +485,23 @@ void drawGraphScreen(int mode, float t, float h) {
   // Y軸ラベル
   char s[10];
   u8g2.setFont(u8g2_font_5x7_tr);
-  snprintf(s, sizeof(s), "%.1f", maxv); u8g2.drawStr(0, GY_TOP, s);
-  snprintf(s, sizeof(s), "%.1f", minv); u8g2.drawStr(0, GY_BOTTOM, s);
+  sprintf(s, "%.1f", maxv); u8g2.drawStr(0, GY_TOP, s);
+  sprintf(s, "%.1f", minv); u8g2.drawStr(0, GY_BOTTOM, s);
 
+  // 基準線
   drawValueRef(mode, minv, maxv);
   drawTimeMarkers(display_count);
 
   // 折れ線描画
   for (int i = 0; i < display_count - 1; i++) {
-    int i1 = (ui_history_head - display_count + i + UI_MAX_HISTORY * 2) % UI_MAX_HISTORY;
-    int i2 = (ui_history_head - display_count + i + 1 + UI_MAX_HISTORY * 2) % UI_MAX_HISTORY;
+    int i1 = (history_head - display_count + i + MAX_HISTORY * 2) % MAX_HISTORY;
+    int i2 = (history_head - display_count + i + 1 + MAX_HISTORY * 2) % MAX_HISTORY;
     int x1 = map(i, 0, display_count - 1, GX_LEFT, GX_RIGHT);
     int x2 = map(i + 1, 0, display_count - 1, GX_LEFT, GX_RIGHT);
     float v1, v2;
-    if (mode == 1) { v1 = ui_temp_history[i1]; v2 = ui_temp_history[i2]; }
-    else if (mode == 2) { v1 = ui_hum_history[i1]; v2 = ui_hum_history[i2]; }
-    else { v1 = ui_di_history[i1]; v2 = ui_di_history[i2]; }
+    if (mode == 1) { v1 = temp_history[i1]; v2 = temp_history[i2]; }
+    else if (mode == 2) { v1 = hum_history[i1]; v2 = hum_history[i2]; }
+    else { v1 = di_history[i1]; v2 = di_history[i2]; }
     int y1 = map((long)(v1*100), (long)(minv*100), (long)(maxv*100), GY_BOTTOM, GY_TOP);
     int y2 = map((long)(v2*100), (long)(minv*100), (long)(maxv*100), GY_BOTTOM, GY_TOP);
     y1 = constrain(y1, GY_TOP, GY_BOTTOM);
@@ -740,9 +512,9 @@ void drawGraphScreen(int mode, float t, float h) {
   u8g2.sendBuffer();
 }
 
-// --- Mode 4: Export（QRアニメーション等はUI履歴のみ送信）---
+// --- Mode 4: Export（QRアニメーション + BLEデータ転送）---
 void drawExportScreen() {
-  if (ui_history_count < 1) {
+  if (history_count < 1) {
     u8g2.clearBuffer();
     u8g2.setFont(u8g2_font_5x7_tr);
     u8g2.drawStr(10, 35, "No data to export");
@@ -750,11 +522,12 @@ void drawExportScreen() {
     return;
   }
 
-  // BLE送信(表データ。通常スマホアプリへの展開用)
-  sendBLEUIHistory();
+  // BLE送信（接続中なら）
+  sendBLEHistory();
 
+  // データ圧縮
   uint8_t comp[400];
-  int compLen = compressUIHistoryData(comp);
+  int compLen = compressHistoryData(comp);
   int totalPages = (compLen + 39) / 40;
 
   bool manual_mode = false;
@@ -779,7 +552,6 @@ void drawExportScreen() {
       if (long_press) {
         // 長押しでエクスポートモード終了
         while (digitalRead(BUTTON_PIN) == LOW) delay(10); // 離すまで待機
-        display_mode = 0; // モードをリセット
         return; 
       } else {
         if (!manual_mode) {
@@ -837,16 +609,16 @@ void drawExportScreen() {
     u8g2.setDrawColor(1);
     u8g2.setFont(u8g2_font_5x7_tr);
     char ps[16];
-    snprintf(ps, sizeof(ps), "P%d/%d", page + 1, totalPages);
+    sprintf(ps, "P%d/%d", page + 1, totalPages);
     u8g2.drawStr(68, 10, ps);
-    snprintf(ps, sizeof(ps), manual_mode ? "Manual" : "Auto");
+    sprintf(ps, manual_mode ? "Manual" : "Auto");
     u8g2.drawStr(68, 22, ps);
     u8g2.drawStr(68, 36, deviceConnected ? "BLE:OK" : "BLE:--");
-    snprintf(ps, sizeof(ps), "%d pts", ui_history_count);
+    sprintf(ps, "%d pts", history_count);
     u8g2.drawStr(68, 50, ps);
     
     int remSec = (int)((60000 - (millis() - last_interaction)) / 1000);
-    snprintf(ps, sizeof(ps), "%ds", remSec);
+    sprintf(ps, "%ds", remSec);
     u8g2.drawStr(68, 62, ps);
 
     u8g2.sendBuffer();
@@ -860,7 +632,6 @@ void drawExportScreen() {
   u8g2.drawStr(10, 35, "TIMEOUT");
   u8g2.sendBuffer();
   delay(1000);
-  display_mode = 0; // モードをリセット
   return;
 
 export_done:
@@ -871,7 +642,6 @@ export_done:
   u8g2.drawStr(10, 45, "DONE");
   u8g2.sendBuffer();
   delay(1500);
-  display_mode = 0; // モードをリセット
 }
 
 // ============================================================
@@ -892,9 +662,10 @@ void drawTimeMarkers(int display_count) {
   int curMin = now.hour() * 60 + now.minute();
   int maxMin = display_count * 12;
 
+  // trend_rangeに応じた間隔: 24h→6h間隔, 12h→3h, 6h→1h
   int intervals[] = {360, 180, 60};
   int interval = intervals[trend_range];
-  int majorInt = (trend_range == 0) ? 720 : 360; 
+  int majorInt = (trend_range == 0) ? 720 : 360; // 点線を引く間隔
 
   for (int ref = 0; ref < 1440; ref += interval) {
     int ago = curMin - ref;
@@ -910,7 +681,7 @@ void drawTimeMarkers(int display_count) {
     if (ref % majorInt == 0) {
       drawDottedV(x, GY_TOP, GY_BOTTOM);
       char lb[4];
-      snprintf(lb, sizeof(lb), "%d", ref / 60);
+      sprintf(lb, "%d", ref / 60);
       u8g2.setFont(u8g2_font_4x6_tr);
       u8g2.drawStr(x - 2, GY_TLABEL, lb);
       u8g2.setFont(u8g2_font_5x7_tr);
@@ -922,23 +693,25 @@ void drawTimeMarkers(int display_count) {
 
 void drawValueRef(int mode, float minv, float maxv) {
   if (mode == 1) {
+    // 温度: 中央値に点線
     float mid = (maxv + minv) / 2.0f;
     int ym = map((long)(mid * 100), (long)(minv * 100), (long)(maxv * 100), GY_BOTTOM, GY_TOP);
     ym = constrain(ym, GY_TOP, GY_BOTTOM);
     drawDottedH(ym, GX_LEFT, GX_RIGHT);
-    char s[8]; snprintf(s, sizeof(s), "%.1f", mid);
+    char s[8]; sprintf(s, "%.1f", mid);
     u8g2.setFont(u8g2_font_4x6_tr);
     u8g2.drawStr(0, ym + 3, s);
     u8g2.setFont(u8g2_font_5x7_tr);
   }
   else if (mode == 2) {
+    // 湿度: 40%と70%の固定線
     float refs[] = {40.0f, 70.0f};
     for (int r = 0; r < 2; r++) {
       if (refs[r] >= minv && refs[r] <= maxv) {
         int yr = map((long)(refs[r] * 100), (long)(minv * 100), (long)(maxv * 100), GY_BOTTOM, GY_TOP);
         yr = constrain(yr, GY_TOP, GY_BOTTOM);
         drawDottedH(yr, GX_LEFT, GX_RIGHT);
-        char s[6]; snprintf(s, sizeof(s), "%d", (int)refs[r]);
+        char s[6]; sprintf(s, "%d", (int)refs[r]);
         u8g2.setFont(u8g2_font_4x6_tr);
         u8g2.drawStr(0, yr + 3, s);
         u8g2.setFont(u8g2_font_5x7_tr);
@@ -946,6 +719,7 @@ void drawValueRef(int mode, float minv, float maxv) {
     }
   }
   else if (mode == 3) {
+    // 不快指数: 75に固定線
     if (75.0f >= minv && 75.0f <= maxv) {
       int yr = map(7500L, (long)(minv * 100), (long)(maxv * 100), GY_BOTTOM, GY_TOP);
       yr = constrain(yr, GY_TOP, GY_BOTTOM);
@@ -958,18 +732,19 @@ void drawValueRef(int mode, float minv, float maxv) {
 }
 
 // ============================================================
-// ディープスリープ（1分おきに起床するよう変更）
+// ディープスリープ（時刻整列型）
 // ============================================================
 void goToSleep() {
-  // 基本1分(60秒)スリープ
-  uint64_t sleepUs = 60ULL * 1000000ULL; 
+  uint64_t sleepUs = 720ULL * 1000000ULL; // デフォルト12分
 
-  DateTime now = rtc.now() + TimeSpan(0, 9, 0, 0); // JST
+  DateTime now = rtc.now() + TimeSpan(0, 9, 0, 0);
   if (now.year() >= 2024 && now.year() < 2050) {
-    // 毎分00秒ジャストに起きるように補正
+    int cm = now.minute();
     int cs = now.second();
-    int wait = 60 - cs;
-    if (wait < 5) wait = 60; // 5秒未満しか余裕がない場合は1分丸ごと寝る
+    int next = ((cm / 12) + 1) * 12;
+    int wait = (next - cm) * 60 - cs;
+    if (next >= 60) wait = (60 - cm + (next - 60)) * 60 - cs;
+    if (wait < 60) wait = 60;
     sleepUs = (uint64_t)wait * 1000000ULL;
   }
 
