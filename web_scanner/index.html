@@ -375,6 +375,11 @@
     let bleTxChar = null;
     let bleRxChar = null;
 
+    // BLE 接続用の設定定数 (重複を排除)
+    const BLE_SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+    const BLE_CHAR_RX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+    const BLE_CHAR_TX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a9";
+
     // Viewの切り替え管理関数
     function switchView(phase) {
       document.getElementById("phase-setup").style.display = (phase === 1) ? "flex" : "none";
@@ -648,20 +653,16 @@
       if (isComplete) return;
       
       try {
-        const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
-        const CHAR_RX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
-        const CHAR_TX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a9";
-
         // 既に接続済みの場合はデバイス選択ダイアログをスキップして再利用
         if (!bleDevice || !bleDevice.gatt.connected) {
           bleDevice = await navigator.bluetooth.requestDevice({
             filters: [{ namePrefix: "XIAO" }],
-            optionalServices: [SERVICE_UUID]
+            optionalServices: [BLE_SERVICE_UUID]
           });
           const server = await bleDevice.gatt.connect();
-          const service = await server.getPrimaryService(SERVICE_UUID);
-          bleRxChar = await service.getCharacteristic(CHAR_RX_UUID);
-          bleTxChar = await service.getCharacteristic(CHAR_TX_UUID);
+          const service = await server.getPrimaryService(BLE_SERVICE_UUID);
+          bleRxChar = await service.getCharacteristic(BLE_CHAR_RX_UUID);
+          bleTxChar = await service.getCharacteristic(BLE_CHAR_TX_UUID);
         }
 
         switchView(2); 
@@ -709,20 +710,16 @@
       if (isComplete) return;
       
       try {
-        const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
-        const CHAR_RX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
-        const CHAR_TX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a9";
-
         // 既に接続済みの場合はデバイス選択ダイアログをスキップして再利用
         if (!bleDevice || !bleDevice.gatt.connected) {
           bleDevice = await navigator.bluetooth.requestDevice({
             filters: [{ namePrefix: "XIAO" }],
-            optionalServices: [SERVICE_UUID]
+            optionalServices: [BLE_SERVICE_UUID]
           });
           const server = await bleDevice.gatt.connect();
-          const service = await server.getPrimaryService(SERVICE_UUID);
-          bleRxChar = await service.getCharacteristic(CHAR_RX_UUID);
-          bleTxChar = await service.getCharacteristic(CHAR_TX_UUID);
+          const service = await server.getPrimaryService(BLE_SERVICE_UUID);
+          bleRxChar = await service.getCharacteristic(BLE_CHAR_RX_UUID);
+          bleTxChar = await service.getCharacteristic(BLE_CHAR_TX_UUID);
         }
 
         switchView(2);
@@ -943,18 +940,14 @@ ${summaryText}
       if (directBuffer) {
         comp = directBuffer;
       } else {
-        let allBytes = [];
-        for(let i=0; i<expectedPages; i++){
-          allBytes.push(...receivedPayloads[i]);
-        }
-        comp = new Uint8Array(allBytes);
+        comp = new Uint8Array(receivedPayloads.flat());
       }
       
       let history_count = comp[0];
       let ts = new DataView(comp.buffer).getUint32(2, true); 
       
       let labels = [], temp_data = [], hum_data = [], di_data = [];
-      let csv = "Timestamp,Temperature(C),Humidity(%),DiscomfortIndex\n";
+      let csvRows = ["Timestamp,Temperature(C),Humidity(%),DiscomfortIndex"];
       let pos_t = 6, pos_h = 6 + history_count, pos_di = 6 + history_count * 2;
       
       for(let i=0; i<history_count; i++) {
@@ -973,8 +966,9 @@ ${summaryText}
         temp_data.push(temp.toFixed(1));
         hum_data.push(hum.toFixed(1));
         di_data.push(di);
-        csv += `${timeStr},${temp.toFixed(1)},${hum.toFixed(1)},${di.toFixed(1)}\n`;
+        csvRows.push(`${timeStr},${temp.toFixed(1)},${hum.toFixed(1)},${di.toFixed(1)}`);
       }
+      let csv = csvRows.join("\n") + "\n";
       
       const tempFloats = temp_data.map(v => parseFloat(v));
       const humFloats = hum_data.map(v => parseFloat(v));

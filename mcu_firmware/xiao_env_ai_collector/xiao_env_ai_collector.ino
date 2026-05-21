@@ -39,6 +39,10 @@ Eloquent::ML::Port::RandomForestRegressor mlModel;
 #define AI_LOG_FILE "/ai_env_log.bin"
 #define AI_MAX_TOTAL_POINTS 44640 // 1ヶ月分 (31d * 24h * 60m)
 
+// BLE送信用特殊メッセージ定数 (マジックストリングの定数化)
+#define BLE_MSG_NO_AI_LOG "NO_AI_LOG"
+#define BLE_MSG_EOF       "EOF"
+
 // --- グラフ描画定数 ---
 #define GX_LEFT   28
 #define GX_RIGHT  122
@@ -543,7 +547,7 @@ void sendBLEAILog() {
   File file = LittleFS.open(AI_LOG_FILE, FILE_READ);
   if (!file) {
     // ログがなければ修了通知として短い文字列を送るなど
-    pTxCharacteristic->setValue("NO_AI_LOG");
+    pTxCharacteristic->setValue(BLE_MSG_NO_AI_LOG);
     pTxCharacteristic->notify();
     return;
   }
@@ -563,7 +567,7 @@ void sendBLEAILog() {
   
   // 終了マーカー
   delay(100);
-  pTxCharacteristic->setValue("EOF");
+  pTxCharacteristic->setValue(BLE_MSG_EOF);
   pTxCharacteristic->notify();
 }
 
@@ -650,7 +654,7 @@ void drawNowScreen(float t, float h) {
   char timeStr[16] = "--:--";
   DateTime now = rtc.now() + TimeSpan(0, 9, 0, 0);
   if (now.year() >= 2024 && now.year() < 2050)
-    sprintf(timeStr, "%02d/%02d %02d:%02d", now.month(), now.day(), now.hour(), now.minute());
+    snprintf(timeStr, sizeof(timeStr), "%02d/%02d %02d:%02d", now.month(), now.day(), now.hour(), now.minute());
 
   u8g2.setFont(u8g2_font_5x7_tr);
   u8g2.drawStr(0, 7, label);
@@ -684,7 +688,7 @@ void drawGraphScreen(int mode, float t, float h) {
   char timeStr[16] = "--:--";
   DateTime now = rtc.now() + TimeSpan(0, 9, 0, 0);
   if (now.year() >= 2024 && now.year() < 2050)
-    sprintf(timeStr, "%02d/%02d %02d:%02d", now.month(), now.day(), now.hour(), now.minute());
+    snprintf(timeStr, sizeof(timeStr), "%02d/%02d %02d:%02d", now.month(), now.day(), now.hour(), now.minute());
 
   u8g2.setFont(u8g2_font_5x7_tr);
   u8g2.drawStr(0, 7, title);
