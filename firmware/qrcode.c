@@ -630,11 +630,16 @@ static void rs_getRemainder(uint8_t degree, uint8_t *coeff, uint8_t *data, uint8
 
 #pragma mark - QrCode
 
-static int8_t encodeDataCodewords(BitBucket *dataCodewords, const uint8_t *text, uint16_t length, uint8_t version) {
+static int8_t encodeDataCodewords(BitBucket *dataCodewords, const uint8_t *text, uint16_t length, uint8_t version, uint32_t maxBits) {
     int8_t mode = MODE_BYTE;
     
     if (isNumeric((char*)text, length)) {
         mode = MODE_NUMERIC;
+        uint32_t requiredBits = 4 + getModeBits(version, mode) + (length / 3) * 10;
+        if (length % 3 == 1) { requiredBits += 4; }
+        else if (length % 3 == 2) { requiredBits += 7; }
+        if (requiredBits > maxBits) { return -1; }
+
         bb_appendBits(dataCodewords, 1 << MODE_NUMERIC, 4);
         bb_appendBits(dataCodewords, length, getModeBits(version, MODE_NUMERIC));
 
@@ -657,6 +662,10 @@ static int8_t encodeDataCodewords(BitBucket *dataCodewords, const uint8_t *text,
         
     } else if (isAlphanumeric((char*)text, length)) {
         mode = MODE_ALPHANUMERIC;
+        uint32_t requiredBits = 4 + getModeBits(version, mode) + (length / 2) * 11;
+        if (length % 2 == 1) { requiredBits += 6; }
+        if (requiredBits > maxBits) { return -1; }
+
         bb_appendBits(dataCodewords, 1 << MODE_ALPHANUMERIC, 4);
         bb_appendBits(dataCodewords, length, getModeBits(version, MODE_ALPHANUMERIC));
 
@@ -678,6 +687,9 @@ static int8_t encodeDataCodewords(BitBucket *dataCodewords, const uint8_t *text,
         }
         
     } else {
+        uint32_t requiredBits = 4 + getModeBits(version, mode) + (length * 8);
+        if (requiredBits > maxBits) { return -1; }
+
         bb_appendBits(dataCodewords, 1 << MODE_BYTE, 4);
         bb_appendBits(dataCodewords, length, getModeBits(version, MODE_BYTE));
         for (uint16_t i = 0; i < length; i++) {
@@ -775,7 +787,7 @@ uint16_t qrcode_getBufferSize(uint8_t version) {
     return bb_getGridSizeBytes(4 * version + 17);
 }
 
-// @TODO: Return error if data is too big.
+// Returns -1 if the data is too large for the provided version.
 int8_t qrcode_initBytes(QRCode *qrcode, uint8_t *modules, uint8_t version, uint8_t ecc, uint8_t *data, uint16_t length) {
     uint8_t size = version * 4 + 17;
     qrcode->version = version;
@@ -799,7 +811,7 @@ int8_t qrcode_initBytes(QRCode *qrcode, uint8_t *modules, uint8_t version, uint8
     bb_initBuffer(&codewords, codewordBytes, (int32_t)sizeof(codewordBytes));
     
     // Place the data code words into the buffer
-    int8_t mode = encodeDataCodewords(&codewords, data, length, version);
+    int8_t mode = encodeDataCodewords(&codewords, data, length, version, dataCapacity * 8);
     
     if (mode < 0) { return -1; }
     qrcode->mode = mode;
