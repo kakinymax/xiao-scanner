@@ -253,7 +253,7 @@ void setup() {
             u8g2.clearBuffer();
             u8g2.setFont(u8g2_font_ncenB10_tr);
             int rh[] = {24, 12, 6};
-            char rs[16]; sprintf(rs, "Range: %dh", rh[trend_range]);
+            char rs[16]; snprintf(rs, sizeof(rs), "Range: %dh", rh[trend_range]);
             u8g2.drawStr(15, 35, rs);
             u8g2.sendBuffer();
             delay(800);
@@ -590,7 +590,7 @@ void drawPredictionScreen() {
     u8g2.drawStr(5, 20, "Prediction");
     u8g2.setFont(u8g2_font_5x7_tr);
     char buf[28];
-    sprintf(buf, "Need %d more min", 120 - ai_buffer_count);
+    snprintf(buf, sizeof(buf), "Need %d more min", 120 - ai_buffer_count);
     u8g2.drawStr(5, 40, buf);
     u8g2.drawStr(5, 55, "Data collecting...");
     u8g2.sendBuffer();
@@ -623,11 +623,11 @@ void drawPredictionScreen() {
   char buf[28];
 
   // 現在値
-  sprintf(buf, "Now:  %.1fC %.0f%%", cur_t, cur_h);
+  snprintf(buf, sizeof(buf), "Now:  %.1fC %.0f%%", cur_t, cur_h);
   u8g2.drawStr(0, 28, buf);
 
   // 1時間後の予測温度
-  sprintf(buf, "+1h:  %.1f C", predicted_temp);
+  snprintf(buf, sizeof(buf), "+1h:  %.1f C", predicted_temp);
   u8g2.setFont(u8g2_font_ncenB10_tr);
   u8g2.drawStr(0, 45, buf);
 
@@ -650,7 +650,7 @@ void drawNowScreen(float t, float h) {
   char timeStr[16] = "--:--";
   DateTime now = rtc.now() + TimeSpan(0, 9, 0, 0);
   if (now.year() >= 2024 && now.year() < 2050)
-    sprintf(timeStr, "%02d/%02d %02d:%02d", now.month(), now.day(), now.hour(), now.minute());
+    snprintf(timeStr, sizeof(timeStr), "%02d/%02d %02d:%02d", now.month(), now.day(), now.hour(), now.minute());
 
   u8g2.setFont(u8g2_font_5x7_tr);
   u8g2.drawStr(0, 7, label);
@@ -679,12 +679,12 @@ void drawGraphScreen(int mode, float t, float h) {
   int rangeH[] = {24, 12, 6};
   const char* names[] = {"", "Temp", "Hum", "DI"};
   char title[24];
-  sprintf(title, "%s (%dh)", names[mode], rangeH[trend_range]);
+  snprintf(title, sizeof(title), "%s (%dh)", names[mode], rangeH[trend_range]);
 
   char timeStr[16] = "--:--";
   DateTime now = rtc.now() + TimeSpan(0, 9, 0, 0);
   if (now.year() >= 2024 && now.year() < 2050)
-    sprintf(timeStr, "%02d/%02d %02d:%02d", now.month(), now.day(), now.hour(), now.minute());
+    snprintf(timeStr, sizeof(timeStr), "%02d/%02d %02d:%02d", now.month(), now.day(), now.hour(), now.minute());
 
   u8g2.setFont(u8g2_font_5x7_tr);
   u8g2.drawStr(0, 7, title);
@@ -716,8 +716,8 @@ void drawGraphScreen(int mode, float t, float h) {
   // Y軸ラベル
   char s[10];
   u8g2.setFont(u8g2_font_5x7_tr);
-  sprintf(s, "%.1f", maxv); u8g2.drawStr(0, GY_TOP, s);
-  sprintf(s, "%.1f", minv); u8g2.drawStr(0, GY_BOTTOM, s);
+  snprintf(s, sizeof(s), "%.1f", maxv); u8g2.drawStr(0, GY_TOP, s);
+  snprintf(s, sizeof(s), "%.1f", minv); u8g2.drawStr(0, GY_BOTTOM, s);
 
   drawValueRef(mode, minv, maxv);
   drawTimeMarkers(display_count);
@@ -839,16 +839,16 @@ void drawExportScreen() {
     u8g2.setDrawColor(1);
     u8g2.setFont(u8g2_font_5x7_tr);
     char ps[16];
-    sprintf(ps, "P%d/%d", page + 1, totalPages);
+    snprintf(ps, sizeof(ps), "P%d/%d", page + 1, totalPages);
     u8g2.drawStr(68, 10, ps);
-    sprintf(ps, manual_mode ? "Manual" : "Auto");
+    snprintf(ps, sizeof(ps), manual_mode ? "Manual" : "Auto");
     u8g2.drawStr(68, 22, ps);
     u8g2.drawStr(68, 36, deviceConnected ? "BLE:OK" : "BLE:--");
-    sprintf(ps, "%d pts", ui_history_count);
+    snprintf(ps, sizeof(ps), "%d pts", ui_history_count);
     u8g2.drawStr(68, 50, ps);
     
     int remSec = (int)((60000 - (millis() - last_interaction)) / 1000);
-    sprintf(ps, "%ds", remSec);
+    snprintf(ps, sizeof(ps), "%ds", remSec);
     u8g2.drawStr(68, 62, ps);
 
     u8g2.sendBuffer();
@@ -912,7 +912,7 @@ void drawTimeMarkers(int display_count) {
     if (ref % majorInt == 0) {
       drawDottedV(x, GY_TOP, GY_BOTTOM);
       char lb[4];
-      sprintf(lb, "%d", ref / 60);
+      snprintf(lb, sizeof(lb), "%d", ref / 60);
       u8g2.setFont(u8g2_font_4x6_tr);
       u8g2.drawStr(x - 2, GY_TLABEL, lb);
       u8g2.setFont(u8g2_font_5x7_tr);
@@ -928,7 +928,7 @@ void drawValueRef(int mode, float minv, float maxv) {
     int ym = map((long)(mid * 100), (long)(minv * 100), (long)(maxv * 100), GY_BOTTOM, GY_TOP);
     ym = constrain(ym, GY_TOP, GY_BOTTOM);
     drawDottedH(ym, GX_LEFT, GX_RIGHT);
-    char s[8]; sprintf(s, "%.1f", mid);
+    char s[8]; snprintf(s, sizeof(s), "%.1f", mid);
     u8g2.setFont(u8g2_font_4x6_tr);
     u8g2.drawStr(0, ym + 3, s);
     u8g2.setFont(u8g2_font_5x7_tr);
@@ -940,7 +940,7 @@ void drawValueRef(int mode, float minv, float maxv) {
         int yr = map((long)(refs[r] * 100), (long)(minv * 100), (long)(maxv * 100), GY_BOTTOM, GY_TOP);
         yr = constrain(yr, GY_TOP, GY_BOTTOM);
         drawDottedH(yr, GX_LEFT, GX_RIGHT);
-        char s[6]; sprintf(s, "%d", (int)refs[r]);
+        char s[6]; snprintf(s, sizeof(s), "%d", (int)refs[r]);
         u8g2.setFont(u8g2_font_4x6_tr);
         u8g2.drawStr(0, yr + 3, s);
         u8g2.setFont(u8g2_font_5x7_tr);
