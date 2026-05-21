@@ -474,8 +474,13 @@
 
         // UI要素の初期化
         statusEl.innerText = "Waiting...";
-        blocksEl.innerHTML =
-          '<span style="font-size: 0.8rem; color: #64748b; margin: auto;">待機中...</span>';
+        blocksEl.textContent = "";
+        const spanEl = document.createElement("span");
+        spanEl.style.fontSize = "0.8rem";
+        spanEl.style.color = "#64748b";
+        spanEl.style.margin = "auto";
+        spanEl.textContent = "待機中...";
+        blocksEl.appendChild(spanEl);
         document.getElementById("scanner-container").style.display = "block";
 
         const scanLine = document.getElementById("scan-line");
@@ -493,7 +498,7 @@
         if (summaryEl) summaryEl.remove();
         const legendEl = document.getElementById("di-legend");
         if (legendEl) legendEl.remove();
-        document.getElementById("dl-btn-wrapper").innerHTML = "";
+        document.getElementById("dl-btn-wrapper").textContent = "";
 
         btnAiAdvice.style.display = "none";
 
@@ -633,7 +638,7 @@
           requestAnimationFrame(tick);
           scanning = true;
           statusEl.innerText = "読み取り中... 📱";
-          blocksEl.innerHTML = "";
+          blocksEl.textContent = "";
         } catch (err) {
           alert("カメラエラー詳細: " + err.message);
           switchView(1);
@@ -771,10 +776,20 @@
         document.getElementById("chart-container").style.display = "none";
 
         const dlWrapper = document.getElementById("dl-btn-wrapper");
-        dlWrapper.innerHTML = `
-        <button id="btn-dl-ai">💾 AI用バイナリ(.bin)を保存</button>
-        <button id="btn-ai-predict" style="background: linear-gradient(135deg, #ec4899, #be185d); margin-top: 10px;">🔮 1ヶ月データから未来予測 ✨</button>
-      `;
+        dlWrapper.textContent = "";
+        const btnDlAi = document.createElement("button");
+        btnDlAi.id = "btn-dl-ai";
+        btnDlAi.textContent = "💾 AI用バイナリ(.bin)を保存";
+
+        const btnAiPredict = document.createElement("button");
+        btnAiPredict.id = "btn-ai-predict";
+        btnAiPredict.style.background =
+          "linear-gradient(135deg, #ec4899, #be185d)";
+        btnAiPredict.style.marginTop = "10px";
+        btnAiPredict.textContent = "🔮 1ヶ月データから未来予測 ✨";
+
+        dlWrapper.appendChild(btnDlAi);
+        dlWrapper.appendChild(btnAiPredict);
 
         let blob = new Blob([comp], { type: "application/octet-stream" });
 
@@ -854,7 +869,7 @@ ${summaryText}`;
         if (expectedPages === total) return;
         expectedPages = total;
         receivedPayloads = new Array(total).fill(null);
-        blocksEl.innerHTML = "";
+        blocksEl.textContent = "";
         for (let i = 0; i < total; i++) {
           let b = document.createElement("div");
           b.className = "block";
@@ -1009,7 +1024,11 @@ ${summaryText}`;
         chartContainer.style.display = "block";
 
         const dlWrapper = document.getElementById("dl-btn-wrapper");
-        dlWrapper.innerHTML = `<button id="btn-dl">💾 CSVをダウンロード</button>`;
+        dlWrapper.textContent = "";
+        const btnDl = document.createElement("button");
+        btnDl.id = "btn-dl";
+        btnDl.textContent = "💾 CSVをダウンロード";
+        dlWrapper.appendChild(btnDl);
 
         btnAiAdvice.style.display = "block";
 
@@ -1017,13 +1036,25 @@ ${summaryText}`;
           const legend = document.createElement("div");
           legend.id = "di-legend";
           legend.className = "di-legend";
-          legend.innerHTML = `
-          <div class="di-legend-item"><div class="di-box danger"></div>危険</div>
-          <div class="di-legend-item"><div class="di-box alert"></div>警戒</div>
-          <div class="di-legend-item"><div class="di-box warn"></div>やや暑</div>
-          <div class="di-legend-item"><div class="di-box comfort"></div>快適</div>
-          <div class="di-legend-item"><div class="di-box cold"></div>寒い</div>
-        `;
+
+          const items = [
+            { className: "danger", text: "危険" },
+            { className: "alert", text: "警戒" },
+            { className: "warn", text: "やや暑" },
+            { className: "comfort", text: "快適" },
+            { className: "cold", text: "寒い" },
+          ];
+
+          items.forEach((item) => {
+            const legendItem = document.createElement("div");
+            legendItem.className = "di-legend-item";
+            const diBox = document.createElement("div");
+            diBox.className = "di-box " + item.className;
+            legendItem.appendChild(diBox);
+            legendItem.appendChild(document.createTextNode(item.text));
+            legend.appendChild(legendItem);
+          });
+
           chartContainer.appendChild(legend);
         }
 
@@ -1046,20 +1077,39 @@ ${summaryText}`;
           summaryEl.id = "di-summary";
           chartContainer.appendChild(summaryEl);
         }
-        summaryEl.innerHTML = `
-        <table class="di-summary-table">
-          <tr>
-            <th>暑い・危険 (DI≧75)</th>
-            <th>快 適 (55≦DI＜75)</th>
-            <th>寒い (DI＜55)</th>
-          </tr>
-          <tr>
-            <td style="color: #fca5a5">${hotPct} %</td>
-            <td style="color: #6ee7b7">${comfortPct} %</td>
-            <td style="color: #93c5fd">${coldPct} %</td>
-          </tr>
-        </table>
-      `;
+        summaryEl.textContent = "";
+
+        const table = document.createElement("table");
+        table.className = "di-summary-table";
+
+        const trHeader = document.createElement("tr");
+        const thHot = document.createElement("th");
+        thHot.textContent = "暑い・危険 (DI≧75)";
+        const thComfort = document.createElement("th");
+        thComfort.textContent = "快 適 (55≦DI＜75)";
+        const thCold = document.createElement("th");
+        thCold.textContent = "寒い (DI＜55)";
+        trHeader.appendChild(thHot);
+        trHeader.appendChild(thComfort);
+        trHeader.appendChild(thCold);
+
+        const trData = document.createElement("tr");
+        const tdHot = document.createElement("td");
+        tdHot.style.color = "#fca5a5";
+        tdHot.textContent = `${hotPct} %`;
+        const tdComfort = document.createElement("td");
+        tdComfort.style.color = "#6ee7b7";
+        tdComfort.textContent = `${comfortPct} %`;
+        const tdCold = document.createElement("td");
+        tdCold.style.color = "#93c5fd";
+        tdCold.textContent = `${coldPct} %`;
+        trData.appendChild(tdHot);
+        trData.appendChild(tdComfort);
+        trData.appendChild(tdCold);
+
+        table.appendChild(trHeader);
+        table.appendChild(trData);
+        summaryEl.appendChild(table);
 
         const diBackgroundPlugin = {
           id: "diBackground",
