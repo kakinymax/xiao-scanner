@@ -1020,28 +1020,34 @@ ${summaryText}
       if (!summaryEl) {
         summaryEl = document.createElement("div");
         summaryEl.id = "di-summary";
+        summaryEl.innerHTML = `
+          <table class="di-summary-table">
+            <tr>
+              <th>暑い・危険 (DI≧75)</th>
+              <th>快 適 (55≦DI＜75)</th>
+              <th>寒い (DI＜55)</th>
+            </tr>
+            <tr>
+              <td id="di-summary-hot" style="color: #fca5a5">- %</td>
+              <td id="di-summary-comfort" style="color: #6ee7b7">- %</td>
+              <td id="di-summary-cold" style="color: #93c5fd">- %</td>
+            </tr>
+          </table>
+        `;
         chartContainer.appendChild(summaryEl);
       }
-      summaryEl.innerHTML = `
-        <table class="di-summary-table">
-          <tr>
-            <th>暑い・危険 (DI≧75)</th>
-            <th>快 適 (55≦DI＜75)</th>
-            <th>寒い (DI＜55)</th>
-          </tr>
-          <tr>
-            <td style="color: #fca5a5">${hotPct} %</td>
-            <td style="color: #6ee7b7">${comfortPct} %</td>
-            <td style="color: #93c5fd">${coldPct} %</td>
-          </tr>
-        </table>
-      `;
+      
+      // textContentを用いて数値データを安全に流し込む (XSS対策)
+      document.getElementById("di-summary-hot").textContent = `${hotPct} %`;
+      document.getElementById("di-summary-comfort").textContent = `${comfortPct} %`;
+      document.getElementById("di-summary-cold").textContent = `${coldPct} %`;
 
       const diBackgroundPlugin = {
         id: 'diBackground',
         beforeDatasetsDraw: (chart) => {
           const { ctx, chartArea, scales: { x } } = chart;
           ctx.save();
+          let lastColor = null;
           for (let i = 0; i < di_data.length; i++) {
             const diValue = di_data[i];
             let color = 'rgba(0, 0, 0, 0)';
@@ -1053,7 +1059,12 @@ ${summaryText}
             
             const startX = x.getPixelForValue(i - 0.5);
             const endX = x.getPixelForValue(i + 0.5);
-            ctx.fillStyle = color;
+            
+            // 色が変わったときのみfillStyleを設定し、Canvas処理を効率化
+            if (color !== lastColor) {
+              ctx.fillStyle = color;
+              lastColor = color;
+            }
             ctx.fillRect(startX, chartArea.top, endX - startX, chartArea.bottom - chartArea.top);
           }
           ctx.restore();
