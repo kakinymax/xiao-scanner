@@ -483,20 +483,18 @@ int compressUIHistoryData(uint8_t* buf) {
   buf[0] = (uint8_t)ui_history_count;
   buf[1] = (uint8_t)ui_history_head;
   memcpy(&buf[2], &ts, 4);
-  int pos = 6;
+
+  int pos_temp = 6;
+  int pos_hum = 6 + ui_history_count;
+  int pos_di = 6 + ui_history_count * 2;
+
   for (int i = 0; i < ui_history_count; i++) {
     int idx = (ui_history_head - ui_history_count + i + UI_MAX_HISTORY * 2) % UI_MAX_HISTORY;
-    buf[pos++] = constrain((int)((ui_temp_history[idx] - 10.0f) * 5.0f), 0, 255);
+    buf[pos_temp++] = constrain((int)((ui_temp_history[idx] - 10.0f) * 5.0f), 0, 255);
+    buf[pos_hum++] = constrain((int)(ui_hum_history[idx] * 2.55f), 0, 255);
+    buf[pos_di++] = constrain((int)((ui_di_history[idx] - 30.0f) * 4.0f), 0, 255);
   }
-  for (int i = 0; i < ui_history_count; i++) {
-    int idx = (ui_history_head - ui_history_count + i + UI_MAX_HISTORY * 2) % UI_MAX_HISTORY;
-    buf[pos++] = constrain((int)(ui_hum_history[idx] * 2.55f), 0, 255);
-  }
-  for (int i = 0; i < ui_history_count; i++) {
-    int idx = (ui_history_head - ui_history_count + i + UI_MAX_HISTORY * 2) % UI_MAX_HISTORY;
-    buf[pos++] = constrain((int)((ui_di_history[idx] - 30.0f) * 4.0f), 0, 255);
-  }
-  return pos;
+  return pos_di;
 }
 
 // ============================================================
