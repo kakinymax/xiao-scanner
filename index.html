@@ -879,6 +879,17 @@ ${summaryText}
       }
     }
 
+    // Expose functions for testing
+    if (typeof window !== 'undefined') {
+      window.initBlocks = initBlocks;
+      window.getTestState = function() {
+        return {
+          expectedPages: expectedPages,
+          receivedPayloads: receivedPayloads
+        };
+      };
+    }
+
     const scanLine = document.getElementById("scan-line");
     function setScanColor(color) {
       if(!scanLine) return;

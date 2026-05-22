@@ -21,3 +21,5 @@ bin/
 # Local config / API Keys (Prevent committing sensitive keys)
 .env
 api_key.txt
+node_modules/
+node_modules

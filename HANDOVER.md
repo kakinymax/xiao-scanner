@@ -25,8 +25,8 @@ XIAO（Seeed Studio製マイコン）で温度・湿度を計測し、不快指�
 
 ```
 xiao-scanner/
+├── index.html              ← Webアプリ本体（約43KB、全機能ここに集約）
 ├── web_scanner/
-│   ├── index.html          ← Webアプリ本体（約43KB、全機能ここに集約）
 │   ├── README.md
 │   └── archive/            ← 過去バージョン
 ├── mcu_firmware/
