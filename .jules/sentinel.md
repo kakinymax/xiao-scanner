@@ -42,3 +42,7 @@
  **Vulnerability:** `sprintf` was used to write string data into fixed-size buffers, posing a risk of buffer overflow if the source data exceeds the buffer size.
  **Learning:** In C/C++, relying on `sprintf` for string formatting into statically allocated arrays is a common source of memory corruption vulnerabilities, especially in embedded systems where memory is constrained. Even if the current format string seems safe, future changes can easily introduce vulnerabilities.
  **Prevention:** Always use `snprintf` with `sizeof(buffer)` when formatting strings into fixed-size buffers. This safely truncates the string if it exceeds the boundary, avoiding buffer overflows.
+## 2026-05-22 - [XSS via unescaped innerHTML in Error Handling and AI Responses]
+**Vulnerability:** The application used `innerHTML` to directly render unescaped text received from the Gemini API and JavaScript Error messages.
+**Learning:** Even internal errors or trusted external API text can contain unsanitized characters that execute maliciously if rendered via `innerHTML`. Always sanitize external input.
+**Prevention:** Implement and use a utility function like `escapeHTML` to convert dangerous characters (like `<`, `>`, `&`, `"`, `'`) to their HTML entity equivalents before rendering to the DOM when using `innerHTML`.
