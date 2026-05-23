@@ -900,8 +900,15 @@ ${summaryText}
     function tick() {
       if (!scanning) return;
       if (video.readyState === video.HAVE_ENOUGH_DATA && !isComplete) {
-        canvas.width = Math.min(video.videoWidth, 600);
-        canvas.height = canvas.width * (video.videoHeight / video.videoWidth);
+        let newWidth = Math.floor(Math.min(video.videoWidth, 600));
+        let newHeight = Math.floor(newWidth * (video.videoHeight / video.videoWidth));
+
+        // ⚡ Bolt: Update canvas dimensions only when changed to avoid costly backing store reallocation
+        if (canvas.width !== newWidth || canvas.height !== newHeight) {
+          canvas.width = newWidth;
+          canvas.height = newHeight;
+        }
+
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         
         let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);

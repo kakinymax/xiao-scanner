@@ -1,0 +1,3 @@
+## 2026-05-23 - [Canvas Dimension Reallocation Overhead]
+**Learning:** Reassigning `canvas.width` and `canvas.height` indiscriminately in a tight loop (like `requestAnimationFrame`) forces the browser to expensively reallocate the canvas backing buffer on every single frame, even when the values remain exactly the same.
+**Action:** When working with canvas in render loops, always cache and conditionally update dimensions (e.g., `if (canvas.width !== newWidth) canvas.width = newWidth;`) to avoid unnecessary and costly reallocations.
