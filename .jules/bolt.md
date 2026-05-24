@@ -1,0 +1,3 @@
+## 2024-05-24 - [Canvas Reallocation Overhead in Animation Loops]
+**Learning:** Reassigning `canvas.width` and `canvas.height` on every frame of a `requestAnimationFrame` loop, even with identical float values, forces the browser to continually reallocate the canvas backing store and reset its context. When calculating dimensions dynamically (e.g., based on aspect ratio), floating-point precision issues can also cause continuous mismatch with the integer values the browser ultimately assigns.
+**Action:** When updating canvas dimensions in a render loop, always round calculated dimensions to integers (e.g., using `Math.floor()`) and conditionally update `canvas.width` and `canvas.height` only when they differ from the newly calculated values.
