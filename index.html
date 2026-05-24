@@ -1,545 +1,736 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>XIAO ENV Data Scanner</title>
-  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    :root {
-      --bg: #0f172a;
-      --panel: rgba(30, 41, 59, 0.8);
-      --accent: #10b981;
-      --text: #f8fafc;
-    }
-    body {
-      margin: 0; padding: 0;
-      background-color: var(--bg);
-      color: var(--text);
-      font-family: 'Segoe UI', -apple-system, sans-serif;
-      display: flex; flex-direction: column;
-      align-items: center; 
-      min-height: 100vh;
-      min-height: 100dvh;
-      background: radial-gradient(circle at top, #1e293b, var(--bg));
-    }
-    .container {
-      width: 100%; max-width: 450px;
-      padding: 30px 20px; box-sizing: border-box;
-      display: flex; flex-direction: column; gap: 20px;
-      z-index: 10;
-      margin: auto;
-    }
-    .header {
-      text-align: center;
-    }
-    .header h1 {
-      margin: 0; font-size: 1.6rem;
-      background: linear-gradient(to right, #34d399, #3b82f6);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-      letter-spacing: 1px;
-    }
-    .header p {
-      color: #94a3b8; font-size: 0.9rem; margin-top: 5px;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>XIAO ENV Data Scanner</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --panel: rgba(30, 41, 59, 0.8);
+        --accent: #10b981;
+        --text: #f8fafc;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: var(--bg);
+        color: var(--text);
+        font-family:
+          "Segoe UI",
+          -apple-system,
+          sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-height: 100vh;
+        min-height: 100dvh;
+        background: radial-gradient(circle at top, #1e293b, var(--bg));
+      }
+      .container {
+        width: 100%;
+        max-width: 450px;
+        padding: 30px 20px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        z-index: 10;
+        margin: auto;
+      }
+      .header {
+        text-align: center;
+      }
+      .header h1 {
+        margin: 0;
+        font-size: 1.6rem;
+        background: linear-gradient(to right, #34d399, #3b82f6);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: 1px;
+      }
+      .header p {
+        color: #94a3b8;
+        font-size: 0.9rem;
+        margin-top: 5px;
+      }
 
-    /* 各フェーズのコンテナ */
-    .phase-container {
-      display: none; /* JSで制御 */
-      flex-direction: column;
-      gap: 20px;
-      width: 100%;
-    }
+      /* 各フェーズのコンテナ */
+      .phase-container {
+        display: none; /* JSで制御 */
+        flex-direction: column;
+        gap: 20px;
+        width: 100%;
+      }
 
-    .scanner-box {
-      position: relative;
-      width: 100%; aspect-ratio: 1;
-      background: #000;
-      border-radius: 20px;
-      overflow: hidden;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    video {
-      width: 100%; height: 100%;
-      object-fit: cover;
-    }
-    .overlay {
-      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-      box-shadow: inset 0 0 0 4px rgba(16, 185, 129, 0.4);
-      border-radius: 20px;
-      pointer-events: none;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .scan-line {
-      width: 90%; height: 2px;
-      background: var(--accent);
-      box-shadow: 0 0 15px var(--accent);
-      animation: scan 2s linear infinite alternate;
-      position: absolute;
-    }
-    @keyframes scan {
-      0% { top: 5%; opacity: 0.8; }
-      100% { top: 95%; opacity: 1; }
-    }
-    .focus-hint {
-      position: absolute; bottom: 10px; left: 0; right: 0;
-      text-align: center; font-size: 0.75rem;
-      color: rgba(255, 255, 255, 0.6);
-      pointer-events: none;
-      letter-spacing: 0.5px;
-    }
-    .focus-ring {
-      position: absolute;
-      width: 60px; height: 60px;
-      border: 2px solid #fbbf24;
-      border-radius: 8px;
-      pointer-events: none;
-      display: none;
-      transform: translate(-50%, -50%);
-      animation: focus-flash 0.4s ease-out;
-    }
-    @keyframes focus-flash {
-      0%   { opacity: 1; transform: translate(-50%, -50%) scale(1.3); }
-      100% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); }
-    }
-    .progress-panel {
-      background: var(--panel);
-      padding: 20px; border-radius: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-    }
-    .progress-text {
-      display: flex; justify-content: space-between;
-      margin-bottom: 15px; font-weight: bold; font-size: 0.95rem;
-    }
-    .blocks {
-      display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
-    }
-    .block {
-      flex: 1; height: 12px; min-width: 15px; max-width: 30px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 4px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .block.active {
-      background: var(--accent);
-      box-shadow: 0 0 10px var(--accent);
-      transform: scale(1.1);
-    }
-    .btn-group {
-      display: flex; gap: 10px; width: 100%;
-    }
-    .btn-group button {
-      flex: 1; padding: 15px 10px; font-size: 1rem;
-    }
-    #btn-ble {
-      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-    }
-    button {
-      background: linear-gradient(135deg, #10b981, #059669);
-      color: #fff;
-      border: none; padding: 15px 20px;
-      border-radius: 12px; font-weight: bold;
-      font-size: 1.1rem; cursor: pointer;
-      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
-      transition: transform 0.1s, box-shadow 0.2s;
-      width: 100%; letter-spacing: 0.5px;
-    }
-    button:active { transform: scale(0.97); }
-    button:disabled { background: #475569; color: #94a3b8; box-shadow: none; cursor:not-allowed; }
-    
-    #btn-ai-advice {
-      background: linear-gradient(135deg, #f59e0b, #d97706);
-      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
-    }
+      .scanner-box {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 1;
+        background: #000;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        box-shadow: inset 0 0 0 4px rgba(16, 185, 129, 0.4);
+        border-radius: 20px;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .scan-line {
+        width: 90%;
+        height: 2px;
+        background: var(--accent);
+        box-shadow: 0 0 15px var(--accent);
+        animation: scan 2s linear infinite alternate;
+        position: absolute;
+      }
+      @keyframes scan {
+        0% {
+          top: 5%;
+          opacity: 0.8;
+        }
+        100% {
+          top: 95%;
+          opacity: 1;
+        }
+      }
+      .focus-hint {
+        position: absolute;
+        bottom: 10px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.6);
+        pointer-events: none;
+        letter-spacing: 0.5px;
+      }
+      .focus-ring {
+        position: absolute;
+        width: 60px;
+        height: 60px;
+        border: 2px solid #fbbf24;
+        border-radius: 8px;
+        pointer-events: none;
+        display: none;
+        transform: translate(-50%, -50%);
+        animation: focus-flash 0.4s ease-out;
+      }
+      @keyframes focus-flash {
+        0% {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1.3);
+        }
+        100% {
+          opacity: 0.8;
+          transform: translate(-50%, -50%) scale(1);
+        }
+      }
+      .progress-panel {
+        background: var(--panel);
+        padding: 20px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+      }
+      .progress-text {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 15px;
+        font-weight: bold;
+        font-size: 0.95rem;
+      }
+      .blocks {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .block {
+        flex: 1;
+        height: 12px;
+        min-width: 15px;
+        max-width: 30px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .block.active {
+        background: var(--accent);
+        box-shadow: 0 0 10px var(--accent);
+        transform: scale(1.1);
+      }
+      .btn-group {
+        display: flex;
+        gap: 10px;
+        width: 100%;
+      }
+      .btn-group button {
+        flex: 1;
+        padding: 15px 10px;
+        font-size: 1rem;
+      }
+      #btn-ble {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      }
+      button {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: #fff;
+        border: none;
+        padding: 15px 20px;
+        border-radius: 12px;
+        font-weight: bold;
+        font-size: 1.1rem;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+        transition:
+          transform 0.1s,
+          box-shadow 0.2s;
+        width: 100%;
+        letter-spacing: 0.5px;
+      }
+      button:active {
+        transform: scale(0.97);
+      }
+      button:disabled {
+        background: #475569;
+        color: #94a3b8;
+        box-shadow: none;
+        cursor: not-allowed;
+      }
 
-    /* 設定ボタンとモーダルのスタイル */
-    #btn-settings {
-      background: transparent;
-      box-shadow: none;
-      color: #94a3b8;
-      width: auto;
-      padding: 10px;
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      font-size: 1.5rem;
-      z-index: 20;
-    }
-    #btn-settings:hover { color: #f8fafc; }
-    .modal-overlay {
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.7);
-      display: none; justify-content: center; align-items: center;
-      z-index: 100; backdrop-filter: blur(5px);
-    }
-    .modal-content {
-      background: var(--bg);
-      padding: 20px; border-radius: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      width: 90%; max-width: 400px;
-    }
-    .modal-content h2 { margin-top: 0; font-size: 1.2rem; }
-    .modal-content input {
-      width: 100%; padding: 10px; margin: 15px 0;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: white; border-radius: 8px; box-sizing: border-box;
-    }
-    .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; }
-    .modal-buttons button { width: auto; padding: 10px 15px; font-size: 0.9rem; }
-    .btn-cancel { background: #475569; box-shadow: none; }
+      #btn-ai-advice {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+      }
 
-    #canvas { display: none; }
-    
-    #chart-container {
-      width: 100%;
-      background: var(--panel);
-      padding: 15px;
-      border-radius: 16px;
-      box-sizing: border-box;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-    }
-    .di-legend {
-      display: flex; flex-wrap: wrap; justify-content: center;
-      gap: 10px; margin-top: 15px; padding-top: 10px;
-      border-top: 1px solid rgba(255,255,255,0.1);
-      font-size: 0.75rem; color: #94a3b8;
-    }
-    .di-legend-item { display: flex; align-items: center; gap: 4px; }
-    .di-box { width: 10px; height: 10px; border-radius: 2px; }
-    .di-box.danger { background: rgba(239, 68, 68, 0.4); }
-    .di-box.alert  { background: rgba(245, 158, 11, 0.4); }
-    .di-box.warn   { background: rgba(252, 211, 77, 0.4); }
-    .di-box.comfort { background: rgba(16, 185, 129, 0.2); }
-    .di-box.cold    { background: rgba(59, 130, 246, 0.4); }
-    .di-summary-table {
-      width: 100%; margin-top: 15px; border-collapse: collapse;
-      font-size: 0.8rem; text-align: center;
-    }
-    .di-summary-table th, .di-summary-table td {
-      padding: 8px; border: 1px solid rgba(255,255,255,0.1);
-    }
-    .di-summary-table th { background: rgba(0,0,0,0.2); color: #94a3b8; font-weight: normal; }
+      /* 設定ボタンとモーダルのスタイル */
+      #btn-settings {
+        background: transparent;
+        box-shadow: none;
+        color: #94a3b8;
+        width: auto;
+        padding: 10px;
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        font-size: 1.5rem;
+        z-index: 20;
+      }
+      #btn-settings:hover {
+        color: #f8fafc;
+      }
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 100;
+        backdrop-filter: blur(5px);
+      }
+      .modal-content {
+        background: var(--bg);
+        padding: 20px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        width: 90%;
+        max-width: 400px;
+      }
+      .modal-content h2 {
+        margin-top: 0;
+        font-size: 1.2rem;
+      }
+      .modal-content input {
+        width: 100%;
+        padding: 10px;
+        margin: 15px 0;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        border-radius: 8px;
+        box-sizing: border-box;
+      }
+      .modal-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+      .modal-buttons button {
+        width: auto;
+        padding: 10px 15px;
+        font-size: 0.9rem;
+      }
+      .btn-cancel {
+        background: #475569;
+        box-shadow: none;
+      }
 
-    /* AI Advice Panel */
-    #ai-advice-panel {
-      background: var(--panel);
-      padding: 20px; border-radius: 16px;
-      border: 1px solid rgba(245, 158, 11, 0.4);
-      backdrop-filter: blur(10px);
-      display: none;
-      flex-direction: column;
-      gap: 10px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    }
-    .ai-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 1.1rem;
-      font-weight: bold;
-      color: #fbbf24;
-      margin: 0;
-    }
-    .ai-content {
-      font-size: 0.9rem;
-      line-height: 1.6;
-      color: #f8fafc;
-    }
-    .loading-dots:after {
-      content: '.';
-      animation: dots 1.5s steps(5, end) infinite;
-    }
-    @keyframes dots {
-      0%, 20% { color: rgba(0,0,0,0); text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); }
-      40% { color: white; text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); }
-      60% { text-shadow: .25em 0 0 white, .5em 0 0 rgba(0,0,0,0); }
-      80%, 100% { text-shadow: .25em 0 0 white, .5em 0 0 white; }
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <button id="btn-settings" title="設定">⚙️</button>
-    <div class="header">
-      <h1>XIAO ENV DECODER</h1>
-      <p id="header-desc">取得方法を選択してください</p>
-    </div>
+      #canvas {
+        display: none;
+      }
 
-    <!-- Phase 1: Setup -->
-    <div id="phase-setup" class="phase-container" style="display: flex;">
-      <div class="btn-group">
-        <button id="btn-start">📷 カメラ起動</button>
-        <button id="btn-ble">📶 BLE同期</button>
+      #chart-container {
+        width: 100%;
+        background: var(--panel);
+        padding: 15px;
+        border-radius: 16px;
+        box-sizing: border-box;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+      }
+      .di-legend {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 15px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        font-size: 0.75rem;
+        color: #94a3b8;
+      }
+      .di-legend-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .di-box {
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+      }
+      .di-box.danger {
+        background: rgba(239, 68, 68, 0.4);
+      }
+      .di-box.alert {
+        background: rgba(245, 158, 11, 0.4);
+      }
+      .di-box.warn {
+        background: rgba(252, 211, 77, 0.4);
+      }
+      .di-box.comfort {
+        background: rgba(16, 185, 129, 0.2);
+      }
+      .di-box.cold {
+        background: rgba(59, 130, 246, 0.4);
+      }
+      .di-summary-table {
+        width: 100%;
+        margin-top: 15px;
+        border-collapse: collapse;
+        font-size: 0.8rem;
+        text-align: center;
+      }
+      .di-summary-table th,
+      .di-summary-table td {
+        padding: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .di-summary-table th {
+        background: rgba(0, 0, 0, 0.2);
+        color: #94a3b8;
+        font-weight: normal;
+      }
+
+      /* AI Advice Panel */
+      #ai-advice-panel {
+        background: var(--panel);
+        padding: 20px;
+        border-radius: 16px;
+        border: 1px solid rgba(245, 158, 11, 0.4);
+        backdrop-filter: blur(10px);
+        display: none;
+        flex-direction: column;
+        gap: 10px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      }
+      .ai-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: #fbbf24;
+        margin: 0;
+      }
+      .ai-content {
+        font-size: 0.9rem;
+        line-height: 1.6;
+        color: #f8fafc;
+      }
+      .loading-dots:after {
+        content: ".";
+        animation: dots 1.5s steps(5, end) infinite;
+      }
+      @keyframes dots {
+        0%,
+        20% {
+          color: rgba(0, 0, 0, 0);
+          text-shadow:
+            0.25em 0 0 rgba(0, 0, 0, 0),
+            0.5em 0 0 rgba(0, 0, 0, 0);
+        }
+        40% {
+          color: white;
+          text-shadow:
+            0.25em 0 0 rgba(0, 0, 0, 0),
+            0.5em 0 0 rgba(0, 0, 0, 0);
+        }
+        60% {
+          text-shadow:
+            0.25em 0 0 white,
+            0.5em 0 0 rgba(0, 0, 0, 0);
+        }
+        80%,
+        100% {
+          text-shadow:
+            0.25em 0 0 white,
+            0.5em 0 0 white;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <button id="btn-settings" title="設定">⚙️</button>
+      <div class="header">
+        <h1>XIAO ENV DECODER</h1>
+        <p id="header-desc">取得方法を選択してください</p>
       </div>
-      <div style="width: 100%;">
-        <button id="btn-ai-log" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); font-size: 0.9rem; padding: 10px;">🤖 全AIログを取得 (1ヶ月分)</button>
-      </div>
-    </div>
 
-    <!-- Phase 2: Active (Scan / BLE Progress) -->
-    <div id="phase-active" class="phase-container">
-      <div class="scanner-box" id="scanner-container">
-        <video id="video" playsinline muted></video>
-        <div class="overlay">
-          <div class="scan-line" id="scan-line"></div>
-          <div class="focus-hint" id="focus-hint">👆 タップでフォーカス</div>
-          <div class="focus-ring" id="focus-ring"></div>
+      <!-- Phase 1: Setup -->
+      <div id="phase-setup" class="phase-container" style="display: flex">
+        <div class="btn-group">
+          <button id="btn-start">📷 カメラ起動</button>
+          <button id="btn-ble">📶 BLE同期</button>
         </div>
-        <canvas id="canvas"></canvas>
-      </div>
-
-      <div class="progress-panel">
-        <div class="progress-text">
-          <span>Capture Progress</span>
-          <span id="status">Waiting...</span>
+        <div style="width: 100%">
+          <button
+            id="btn-ai-log"
+            style="
+              background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+              font-size: 0.9rem;
+              padding: 10px;
+            "
+          >
+            🤖 全AIログを取得 (1ヶ月分)
+          </button>
         </div>
-        <div class="blocks" id="blocks">
-          <span style="font-size: 0.8rem; color: #64748b; margin: auto;">待機中...</span>
+      </div>
+
+      <!-- Phase 2: Active (Scan / BLE Progress) -->
+      <div id="phase-active" class="phase-container">
+        <div class="scanner-box" id="scanner-container">
+          <video id="video" playsinline muted></video>
+          <div class="overlay">
+            <div class="scan-line" id="scan-line"></div>
+            <div class="focus-hint" id="focus-hint">👆 タップでフォーカス</div>
+            <div class="focus-ring" id="focus-ring"></div>
+          </div>
+          <canvas id="canvas"></canvas>
+        </div>
+
+        <div class="progress-panel">
+          <div class="progress-text">
+            <span>Capture Progress</span>
+            <span id="status">Waiting...</span>
+          </div>
+          <div class="blocks" id="blocks">
+            <span style="font-size: 0.8rem; color: #64748b; margin: auto"
+              >待機中...</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 3: Result (Chart & Download) -->
+      <div id="phase-result" class="phase-container">
+        <div id="chart-container" style="display: none">
+          <canvas id="chart"></canvas>
+        </div>
+
+        <div
+          id="dl-btn-wrapper"
+          style="width: 100%; display: flex; flex-direction: column; gap: 10px"
+        >
+          <!-- JSでダウンロードボタンが挿入されます -->
+        </div>
+
+        <button id="btn-ai-advice" style="display: none">
+          🤖 環境AIアドバイス ✨
+        </button>
+
+        <div id="ai-advice-panel">
+          <h3 class="ai-header"><span>🤖</span> AI 分析・アドバイス</h3>
+          <div id="ai-advice-content" class="ai-content"></div>
+        </div>
+
+        <button id="btn-reset" style="background: #475569; box-shadow: none">
+          🔄 最初からやり直す
+        </button>
+      </div>
+    </div>
+
+    <!-- 設定モーダル -->
+    <div id="settings-modal" class="modal-overlay">
+      <div class="modal-content">
+        <h2>設定</h2>
+        <p style="font-size: 0.85rem; color: #94a3b8; margin: 0">
+          Gemini APIキーを入力してください。<br />※キーはブラウザ内部(localStorage)にのみ保存され、安全に管理されます。
+        </p>
+        <input type="password" id="api-key-input" placeholder="AIzaSy..." />
+        <div class="modal-buttons">
+          <button id="btn-modal-cancel" class="btn-cancel">キャンセル</button>
+          <button id="btn-modal-save">保存</button>
         </div>
       </div>
     </div>
 
-    <!-- Phase 3: Result (Chart & Download) -->
-    <div id="phase-result" class="phase-container">
-      <div id="chart-container" style="display: none;">
-        <canvas id="chart"></canvas>
-      </div>
-      
-      <div id="dl-btn-wrapper" style="width: 100%; display: flex; flex-direction: column; gap: 10px;">
-        <!-- JSでダウンロードボタンが挿入されます -->
-      </div>
-      
-      <button id="btn-ai-advice" style="display: none;">🤖 環境AIアドバイス ✨</button>
-      
-      <div id="ai-advice-panel">
-        <h3 class="ai-header"><span>🤖</span> AI 分析・アドバイス</h3>
-        <div id="ai-advice-content" class="ai-content"></div>
-      </div>
+    <script>
+      const video = document.getElementById("video");
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      const blocksEl = document.getElementById("blocks");
+      const statusEl = document.getElementById("status");
+      const btnStart = document.getElementById("btn-start");
+      const btnBle = document.getElementById("btn-ble");
+      const btnAiLog = document.getElementById("btn-ai-log");
+      const focusRing = document.getElementById("focus-ring");
+      const focusHint = document.getElementById("focus-hint");
+      const btnAiAdvice = document.getElementById("btn-ai-advice");
+      const aiAdvicePanel = document.getElementById("ai-advice-panel");
+      const aiAdviceContent = document.getElementById("ai-advice-content");
 
-      <button id="btn-reset" style="background: #475569; box-shadow: none;">🔄 最初からやり直す</button>
-    </div>
+      // 設定モーダル用要素
+      const btnSettings = document.getElementById("btn-settings");
+      const settingsModal = document.getElementById("settings-modal");
+      const btnModalCancel = document.getElementById("btn-modal-cancel");
+      const btnModalSave = document.getElementById("btn-modal-save");
+      const apiKeyInput = document.getElementById("api-key-input");
 
-  </div>
+      let activeStream = null;
+      let scanning = false;
+      let expectedPages = 0;
+      let receivedPayloads = [];
+      let isComplete = false;
+      let myChart = null;
+      let currentEnvData = null;
+      // BLE接続状態をグローバルに保持（画面遷移しても接続維持）
+      let bleDevice = null;
+      let bleTxChar = null;
+      let bleRxChar = null;
 
-  <!-- 設定モーダル -->
-  <div id="settings-modal" class="modal-overlay">
-    <div class="modal-content">
-      <h2>設定</h2>
-      <p style="font-size: 0.85rem; color: #94a3b8; margin: 0;">Gemini APIキーを入力してください。<br>※キーはブラウザ内部(localStorage)にのみ保存され、安全に管理されます。</p>
-      <input type="password" id="api-key-input" placeholder="AIzaSy...">
-      <div class="modal-buttons">
-        <button id="btn-modal-cancel" class="btn-cancel">キャンセル</button>
-        <button id="btn-modal-save">保存</button>
-      </div>
-    </div>
-  </div>
+      // BLE 接続用の設定定数 (重複を排除)
+      const BLE_SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+      const BLE_CHAR_RX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+      const BLE_CHAR_TX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a9";
 
-  <script>
-    const video = document.getElementById("video");
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    const blocksEl = document.getElementById("blocks");
-    const statusEl = document.getElementById("status");
-    const btnStart = document.getElementById("btn-start");
-    const btnBle = document.getElementById("btn-ble");
-    const btnAiLog = document.getElementById("btn-ai-log");
-    const focusRing = document.getElementById("focus-ring");
-    const focusHint = document.getElementById("focus-hint");
-    const btnAiAdvice = document.getElementById("btn-ai-advice");
-    const aiAdvicePanel = document.getElementById("ai-advice-panel");
-    const aiAdviceContent = document.getElementById("ai-advice-content");
-    
-    // 設定モーダル用要素
-    const btnSettings = document.getElementById("btn-settings");
-    const settingsModal = document.getElementById("settings-modal");
-    const btnModalCancel = document.getElementById("btn-modal-cancel");
-    const btnModalSave = document.getElementById("btn-modal-save");
-    const apiKeyInput = document.getElementById("api-key-input");
-    
-    let activeStream = null;
-    let scanning = false;
-    let expectedPages = 0;
-    let receivedPayloads = [];
-    let isComplete = false;
-    let myChart = null;
-    let currentEnvData = null;
-    // BLE接続状態をグローバルに保持（画面遷移しても接続維持）
-    let bleDevice = null;
-    let bleTxChar = null;
-    let bleRxChar = null;
+      // XSS対策：HTMLエスケープ関数
+      function escapeHTML(str) {
+        if (typeof str !== "string") return str;
+        return str.replace(/[&<>'"]/g, function (tag) {
+          const charsToReplace = {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            "'": "&#39;",
+            '"': "&quot;",
+          };
+          return charsToReplace[tag] || tag;
+        });
+      }
 
-    // BLE 接続用の設定定数 (重複を排除)
-    const BLE_SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
-    const BLE_CHAR_RX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
-    const BLE_CHAR_TX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a9";
+      // Viewの切り替え管理関数
+      function switchView(phase) {
+        document.getElementById("phase-setup").style.display =
+          phase === 1 ? "flex" : "none";
+        document.getElementById("phase-active").style.display =
+          phase === 2 ? "flex" : "none";
+        document.getElementById("phase-result").style.display =
+          phase === 3 ? "flex" : "none";
 
-    // Viewの切り替え管理関数
-    function switchView(phase) {
-      document.getElementById("phase-setup").style.display = (phase === 1) ? "flex" : "none";
-      document.getElementById("phase-active").style.display = (phase === 2) ? "flex" : "none";
-      document.getElementById("phase-result").style.display = (phase === 3) ? "flex" : "none";
-      
-      const desc = document.getElementById("header-desc");
-      if(phase === 1) desc.innerText = "取得方法を選択してください";
-      else if(phase === 2) desc.innerText = "「Record video now」の画面を枠内に捉えてください";
-      else if(phase === 3) desc.innerText = "データ解析完了";
-    }
+        const desc = document.getElementById("header-desc");
+        if (phase === 1) desc.innerText = "取得方法を選択してください";
+        else if (phase === 2)
+          desc.innerText = "「Record video now」の画面を枠内に捉えてください";
+        else if (phase === 3) desc.innerText = "データ解析完了";
+      }
 
-    // ダウンロードロジックのモバイル最適化ヘルパー関数
-    async function downloadFileHelper(blob, filename) {
-      // 1. Web Share APIがサポートされているかチェック（スマホブラウザ向け）
-      if (navigator.share && navigator.canShare) {
-        try {
-          const file = new File([blob], filename, { type: blob.type });
-          if (navigator.canShare({ files: [file] })) {
-            // OS標準の共有メニューを開く
-            await navigator.share({
-              title: 'XIAO ENV Data',
-              files: [file]
-            });
-            return; // 共有成功時はここで終了
+      // ダウンロードロジックのモバイル最適化ヘルパー関数
+      async function downloadFileHelper(blob, filename) {
+        // 1. Web Share APIがサポートされているかチェック（スマホブラウザ向け）
+        if (navigator.share && navigator.canShare) {
+          try {
+            const file = new File([blob], filename, { type: blob.type });
+            if (navigator.canShare({ files: [file] })) {
+              // OS標準の共有メニューを開く
+              await navigator.share({
+                title: "XIAO ENV Data",
+                files: [file],
+              });
+              return; // 共有成功時はここで終了
+            }
+          } catch (err) {
+            console.warn("共有がキャンセルされたか、失敗しました:", err);
+            // 失敗した場合は下の通常のダウンロード処理へフォールバック
           }
-        } catch (err) {
-          console.warn("共有がキャンセルされたか、失敗しました:", err);
-          // 失敗した場合は下の通常のダウンロード処理へフォールバック
+        }
+
+        // 2. 通常のダウンロード処理（PC、またはShare API非対応ブラウザ向け）
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.style.display = "none";
+        document.body.appendChild(a); // DOMに追加（iOS Safari対策）
+        a.click();
+
+        // スマホの処理遅延を考慮し、URLの破棄を3秒後に延長
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 3000);
+      }
+
+      // アプリの状態をリセットする関数
+      function resetApp() {
+        // 変数の初期化
+        scanning = false;
+        isComplete = false;
+        expectedPages = 0;
+        receivedPayloads = [];
+        currentEnvData = null;
+
+        // カメラの停止
+        if (video.srcObject) {
+          video.srcObject.getTracks().forEach((t) => t.stop());
+          video.srcObject = null;
+        }
+        activeStream = null;
+
+        // UI要素の初期化
+        statusEl.innerText = "Waiting...";
+        blocksEl.innerHTML =
+          '<span style="font-size: 0.8rem; color: #64748b; margin: auto;">待機中...</span>';
+        document.getElementById("scanner-container").style.display = "block";
+
+        const scanLine = document.getElementById("scan-line");
+        if (scanLine) {
+          scanLine.style.background = "var(--accent)";
+          scanLine.style.boxShadow = "0 0 15px var(--accent)";
+        }
+
+        // グラフとサマリーの破棄
+        if (myChart) {
+          myChart.destroy();
+          myChart = null;
+        }
+        const summaryEl = document.getElementById("di-summary");
+        if (summaryEl) summaryEl.remove();
+        const legendEl = document.getElementById("di-legend");
+        if (legendEl) legendEl.remove();
+        document.getElementById("dl-btn-wrapper").innerHTML = "";
+
+        btnAiAdvice.style.display = "none";
+        aiAdvicePanel.style.display = "none";
+        aiAdviceContent.innerHTML = "";
+
+        // BLE接続を切断（画面リセット時は不要なので切断しないが、
+        // 明示的にリセットする場合は切断する）
+        if (bleDevice && bleDevice.gatt.connected) {
+          bleDevice.gatt.disconnect();
+        }
+        bleDevice = null;
+        bleTxChar = null;
+        bleRxChar = null;
+
+        // Setup画面へ戻す
+        switchView(1);
+      }
+
+      document.getElementById("btn-reset").addEventListener("click", resetApp);
+
+      // --- APIキー管理 ---
+      function getApiKey() {
+        return localStorage.getItem("gemini_api_key") || "";
+      }
+
+      btnSettings.addEventListener("click", () => {
+        apiKeyInput.value = getApiKey();
+        settingsModal.style.display = "flex";
+      });
+
+      btnModalCancel.addEventListener("click", () => {
+        settingsModal.style.display = "none";
+      });
+
+      btnModalSave.addEventListener("click", () => {
+        const key = apiKeyInput.value.trim();
+        localStorage.setItem("gemini_api_key", key);
+        settingsModal.style.display = "none";
+        alert("APIキーを保存しました。");
+      });
+      // -------------------
+
+      // AIフェッチ関数（エクスポネンシャルバックオフ付き）
+      async function fetchWithRetry(url, options, retries = 5) {
+        const delays = [1000, 2000, 4000, 8000, 16000];
+        for (let i = 0; i < retries; i++) {
+          try {
+            const response = await fetch(url, options);
+            if (!response.ok)
+              throw new Error(`HTTP error! status: ${response.status}`);
+            return await response.json();
+          } catch (e) {
+            if (i === retries - 1) throw e;
+            await new Promise((res) => setTimeout(res, delays[i]));
+          }
         }
       }
 
-      // 2. 通常のダウンロード処理（PC、またはShare API非対応ブラウザ向け）
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      a.style.display = "none";
-      document.body.appendChild(a); // DOMに追加（iOS Safari対策）
-      a.click();
-      
-      // スマホの処理遅延を考慮し、URLの破棄を3秒後に延長
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 3000); 
-    }
+      // Gemini API 呼び出し処理
+      btnAiAdvice.addEventListener("click", async () => {
+        if (!currentEnvData) return;
 
-    // アプリの状態をリセットする関数
-    function resetApp() {
-      // 変数の初期化
-      scanning = false;
-      isComplete = false;
-      expectedPages = 0;
-      receivedPayloads = [];
-      currentEnvData = null;
-      
-      // カメラの停止
-      if (video.srcObject) {
-        video.srcObject.getTracks().forEach(t => t.stop());
-        video.srcObject = null;
-      }
-      activeStream = null;
-
-      // UI要素の初期化
-      statusEl.innerText = "Waiting...";
-      blocksEl.innerHTML = '<span style="font-size: 0.8rem; color: #64748b; margin: auto;">待機中...</span>';
-      document.getElementById("scanner-container").style.display = "block";
-      
-      const scanLine = document.getElementById("scan-line");
-      if(scanLine) {
-        scanLine.style.background = "var(--accent)";
-        scanLine.style.boxShadow = "0 0 15px var(--accent)";
-      }
-
-      // グラフとサマリーの破棄
-      if (myChart) {
-        myChart.destroy();
-        myChart = null;
-      }
-      const summaryEl = document.getElementById("di-summary");
-      if (summaryEl) summaryEl.remove();
-      const legendEl = document.getElementById("di-legend");
-      if (legendEl) legendEl.remove();
-      document.getElementById("dl-btn-wrapper").innerHTML = "";
-      
-      btnAiAdvice.style.display = "none";
-      aiAdvicePanel.style.display = "none";
-      aiAdviceContent.innerHTML = "";
-
-      // BLE接続を切断（画面リセット時は不要なので切断しないが、
-      // 明示的にリセットする場合は切断する）
-      if (bleDevice && bleDevice.gatt.connected) {
-        bleDevice.gatt.disconnect();
-      }
-      bleDevice = null;
-      bleTxChar = null;
-      bleRxChar = null;
-
-      // Setup画面へ戻す
-      switchView(1);
-    }
-
-    document.getElementById("btn-reset").addEventListener("click", resetApp);
-
-    // --- APIキー管理 ---
-    function getApiKey() {
-      return localStorage.getItem("gemini_api_key") || "";
-    }
-
-    btnSettings.addEventListener("click", () => {
-      apiKeyInput.value = getApiKey();
-      settingsModal.style.display = "flex";
-    });
-
-    btnModalCancel.addEventListener("click", () => {
-      settingsModal.style.display = "none";
-    });
-
-    btnModalSave.addEventListener("click", () => {
-      const key = apiKeyInput.value.trim();
-      localStorage.setItem("gemini_api_key", key);
-      settingsModal.style.display = "none";
-      alert("APIキーを保存しました。");
-    });
-    // -------------------
-
-    // AIフェッチ関数（エクスポネンシャルバックオフ付き）
-    async function fetchWithRetry(url, options, retries = 5) {
-      const delays = [1000, 2000, 4000, 8000, 16000];
-      for (let i = 0; i < retries; i++) {
-        try {
-          const response = await fetch(url, options);
-          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-          return await response.json();
-        } catch (e) {
-          if (i === retries - 1) throw e;
-          await new Promise(res => setTimeout(res, delays[i]));
+        const savedApiKey = getApiKey();
+        if (!savedApiKey) {
+          alert(
+            "APIキーが設定されていません。\n右上の「⚙️設定」アイコンから、ご自身のGemini APIキーを入力・保存してください。",
+          );
+          return;
         }
-      }
-    }
 
-    // Gemini API 呼び出し処理
-    btnAiAdvice.addEventListener("click", async () => {
-      if (!currentEnvData) return;
-      
-      const savedApiKey = getApiKey();
-      if (!savedApiKey) {
-        alert("APIキーが設定されていません。\n右上の「⚙️設定」アイコンから、ご自身のGemini APIキーを入力・保存してください。");
-        return;
-      }
-      
-      btnAiAdvice.disabled = true;
-      aiAdvicePanel.style.display = "flex";
-      aiAdviceContent.innerHTML = `<span class="loading-dots">環境データをAIが分析中</span>`;
-      
-      // モデル: gemini-2.5-flash（安定版）
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${savedApiKey}`;
-      
-      const prompt = `
+        btnAiAdvice.disabled = true;
+        aiAdvicePanel.style.display = "flex";
+        aiAdviceContent.innerHTML = `<span class="loading-dots">環境データをAIが分析中</span>`;
+
+        // モデル: gemini-2.5-flash（安定版）
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${savedApiKey}`;
+
+        const prompt = `
         あなたは優れた環境アドバイザーです。以下の測定された温湿度データに基づいて、現在の環境状態を評価し、健康や快適性を維持・向上させるためのアドバイスを、親しみやすいトーンで2〜3段落程度で簡潔に教えてください。
         
         【測定データ概要】
@@ -550,286 +741,320 @@
         ・平均湿度: ${currentEnvData.avgHum}%
       `;
 
-      const payload = {
-        contents: [{ parts: [{ text: prompt }] }],
-        systemInstruction: { parts: [{ text: "回答は日本語で提供してください。専門用語はできるだけ避け、一般の人に分かりやすく実践的なアドバイスを心がけてください。" }] }
-      };
-
-      try {
-        const result = await fetchWithRetry(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        
-        const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (text) {
-          aiAdviceContent.innerHTML = text.replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
-        } else {
-          aiAdviceContent.innerHTML = "AIからの応答を正しく取得できませんでした。";
-        }
-      } catch (error) {
-        aiAdviceContent.innerHTML = `通信エラーが発生しました。<br><span style="font-size:0.75rem; color:#ef4444;">${error.message}</span>`;
-      } finally {
-        btnAiAdvice.disabled = false;
-        btnAiAdvice.innerText = "🤖 アドバイスを再生成 ✨";
-      }
-    });
-
-    // カメラ起動処理
-    btnStart.addEventListener("click", async () => {
-      if (scanning && !isComplete) return;
-      if (isComplete) return;
-
-      try {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error("カメラAPIがブロックされています。\nSafari(iOS)等の仕様により、カメラ機能はHTTPS環境でしか使用できません。");
-        }
-        
-        switchView(2); 
-        
-        const constraints = { 
-          video: {
-            facingMode: "environment",
-            width:  { ideal: 1920 },
-            height: { ideal: 1080 },
-            advanced: [{ focusMode: "continuous" }]
-          }
+        const payload = {
+          contents: [{ parts: [{ text: prompt }] }],
+          systemInstruction: {
+            parts: [
+              {
+                text: "回答は日本語で提供してください。専門用語はできるだけ避け、一般の人に分かりやすく実践的なアドバイスを心がけてください。",
+              },
+            ],
+          },
         };
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        activeStream = stream;
-        video.srcObject = stream;
-        video.setAttribute("playsinline", "true");
-        video.setAttribute("autoplay", "true");
-        video.setAttribute("muted", "true");
-        video.muted = true;
-        
-        let playPromise = video.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(e => {
-            alert("Video再生エラー: " + e.message + "\n画面を一度タップしてみてください。");
+
+        try {
+          const result = await fetchWithRetry(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
           });
+
+          const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text) {
+            aiAdviceContent.innerHTML = escapeHTML(text)
+              .replace(/\\n/g, "<br>")
+              .replace(/\n/g, "<br>");
+          } else {
+            aiAdviceContent.innerHTML =
+              "AIからの応答を正しく取得できませんでした。";
+          }
+        } catch (error) {
+          aiAdviceContent.innerHTML = `通信エラーが発生しました。<br><span style="font-size:0.75rem; color:#ef4444;">${escapeHTML(error.message)}</span>`;
+        } finally {
+          btnAiAdvice.disabled = false;
+          btnAiAdvice.innerText = "🤖 アドバイスを再生成 ✨";
         }
+      });
 
-        video.addEventListener("click", async (e) => {
-          if (!activeStream) return;
-          const track = activeStream.getVideoTracks()[0];
-          if (!track) return;
-          const caps = track.getCapabilities ? track.getCapabilities() : {};
-          const rect = video.getBoundingClientRect();
-          const x = (e.clientX - rect.left) / rect.width;
-          const y = (e.clientY - rect.top) / rect.height;
+      // カメラ起動処理
+      btnStart.addEventListener("click", async () => {
+        if (scanning && !isComplete) return;
+        if (isComplete) return;
 
-          focusRing.style.left = (e.clientX - rect.left) + "px";
-          focusRing.style.top  = (e.clientY - rect.top)  + "px";
-          focusRing.style.display = "block";
-          focusRing.style.animation = "none";
-          void focusRing.offsetWidth; 
-          focusRing.style.animation = "focus-flash 0.4s ease-out";
-          setTimeout(() => { focusRing.style.display = "none"; }, 800);
+        try {
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error(
+              "カメラAPIがブロックされています。\nSafari(iOS)等の仕様により、カメラ機能はHTTPS環境でしか使用できません。",
+            );
+          }
 
-          try {
-            const advanced = [{ focusMode: "single-shot" }];
-            if (caps.pointOfInterest) advanced[0].pointOfInterest = { x, y };
-            await track.applyConstraints({ advanced });
-          } catch (_) {}
-        });
+          switchView(2);
 
-        setTimeout(() => { focusHint.style.opacity = "0"; focusHint.style.transition = "opacity 1s"; }, 3000);
-        
-        requestAnimationFrame(tick);
-        scanning = true;
-        statusEl.innerText = "読み取り中... 📱";
-        blocksEl.innerHTML = "";
-      } catch (err) {
-        alert("カメラエラー詳細: " + err.message);
-        switchView(1); 
-      }
-    });
+          const constraints = {
+            video: {
+              facingMode: "environment",
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+              advanced: [{ focusMode: "continuous" }],
+            },
+          };
+          const stream = await navigator.mediaDevices.getUserMedia(constraints);
+          activeStream = stream;
+          video.srcObject = stream;
+          video.setAttribute("playsinline", "true");
+          video.setAttribute("autoplay", "true");
+          video.setAttribute("muted", "true");
+          video.muted = true;
 
-    // BLE起動処理
-    btnBle.addEventListener("click", async () => {
-      if (scanning && !isComplete) return;
-      if (isComplete) return;
-      
-      try {
-        // 既に接続済みの場合はデバイス選択ダイアログをスキップして再利用
-        if (!bleDevice || !bleDevice.gatt.connected) {
-          bleDevice = await navigator.bluetooth.requestDevice({
-            filters: [{ namePrefix: "XIAO" }],
-            optionalServices: [BLE_SERVICE_UUID]
+          let playPromise = video.play();
+          if (playPromise !== undefined) {
+            playPromise.catch((e) => {
+              alert(
+                "Video再生エラー: " +
+                  e.message +
+                  "\n画面を一度タップしてみてください。",
+              );
+            });
+          }
+
+          video.addEventListener("click", async (e) => {
+            if (!activeStream) return;
+            const track = activeStream.getVideoTracks()[0];
+            if (!track) return;
+            const caps = track.getCapabilities ? track.getCapabilities() : {};
+            const rect = video.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width;
+            const y = (e.clientY - rect.top) / rect.height;
+
+            focusRing.style.left = e.clientX - rect.left + "px";
+            focusRing.style.top = e.clientY - rect.top + "px";
+            focusRing.style.display = "block";
+            focusRing.style.animation = "none";
+            void focusRing.offsetWidth;
+            focusRing.style.animation = "focus-flash 0.4s ease-out";
+            setTimeout(() => {
+              focusRing.style.display = "none";
+            }, 800);
+
+            try {
+              const advanced = [{ focusMode: "single-shot" }];
+              if (caps.pointOfInterest) advanced[0].pointOfInterest = { x, y };
+              await track.applyConstraints({ advanced });
+            } catch (_) {}
           });
-          const server = await bleDevice.gatt.connect();
-          const service = await server.getPrimaryService(BLE_SERVICE_UUID);
-          bleRxChar = await service.getCharacteristic(BLE_CHAR_RX_UUID);
-          bleTxChar = await service.getCharacteristic(BLE_CHAR_TX_UUID);
+
+          setTimeout(() => {
+            focusHint.style.opacity = "0";
+            focusHint.style.transition = "opacity 1s";
+          }, 3000);
+
+          requestAnimationFrame(tick);
+          scanning = true;
+          statusEl.innerText = "読み取り中... 📱";
+          blocksEl.innerHTML = "";
+        } catch (err) {
+          alert("カメラエラー詳細: " + err.message);
+          switchView(1);
         }
+      });
 
-        switchView(2); 
-        document.getElementById("scanner-container").style.display = "none"; 
+      // BLE起動処理
+      btnBle.addEventListener("click", async () => {
+        if (scanning && !isComplete) return;
+        if (isComplete) return;
 
-        statusEl.innerText = "接続中...";
-        // 時刻同期
-        const ts = Math.floor(Date.now() / 1000).toString();
-        const enc = new TextEncoder();
-        await bleRxChar.writeValue(enc.encode(ts));
-        
-        statusEl.innerText = "時刻同期OK。XIAOを操作してExport画面にしてください...";
-
-        await bleTxChar.startNotifications();
-        
-        let bleCompLen = 0;
-        let bleBuffer = [];
-        
-        bleTxChar.addEventListener("characteristicvaluechanged", (e) => {
-          const dv = e.target.value;
-          if (bleBuffer.length === 0) {
-            let history_count = dv.getUint8(0);
-            bleCompLen = 6 + (history_count * 3);
+        try {
+          // 既に接続済みの場合はデバイス選択ダイアログをスキップして再利用
+          if (!bleDevice || !bleDevice.gatt.connected) {
+            bleDevice = await navigator.bluetooth.requestDevice({
+              filters: [{ namePrefix: "XIAO" }],
+              optionalServices: [BLE_SERVICE_UUID],
+            });
+            const server = await bleDevice.gatt.connect();
+            const service = await server.getPrimaryService(BLE_SERVICE_UUID);
+            bleRxChar = await service.getCharacteristic(BLE_CHAR_RX_UUID);
+            bleTxChar = await service.getCharacteristic(BLE_CHAR_TX_UUID);
           }
-          for (let i=0; i<dv.byteLength; i++) {
-            bleBuffer.push(dv.getUint8(i));
-          }
-          statusEl.innerText = `受信中... ${bleBuffer.length} / ${bleCompLen} bytes`;
-          
-          if (bleBuffer.length >= bleCompLen && !isComplete) {
-            isComplete = true;
-            processComplete(new Uint8Array(bleBuffer));
-          }
-        });
 
-      } catch(err) {
-        alert("BLE接続エラー: " + err.message);
-        switchView(1);
-      }
-    });
+          switchView(2);
+          document.getElementById("scanner-container").style.display = "none";
 
-    // AIログ取得処理
-    btnAiLog.addEventListener("click", async () => {
-      if (scanning && !isComplete) return;
-      if (isComplete) return;
-      
-      try {
-        // 既に接続済みの場合はデバイス選択ダイアログをスキップして再利用
-        if (!bleDevice || !bleDevice.gatt.connected) {
-          bleDevice = await navigator.bluetooth.requestDevice({
-            filters: [{ namePrefix: "XIAO" }],
-            optionalServices: [BLE_SERVICE_UUID]
+          statusEl.innerText = "接続中...";
+          // 時刻同期
+          const ts = Math.floor(Date.now() / 1000).toString();
+          const enc = new TextEncoder();
+          await bleRxChar.writeValue(enc.encode(ts));
+
+          statusEl.innerText =
+            "時刻同期OK。XIAOを操作してExport画面にしてください...";
+
+          await bleTxChar.startNotifications();
+
+          let bleCompLen = 0;
+          let bleBuffer = [];
+
+          bleTxChar.addEventListener("characteristicvaluechanged", (e) => {
+            const dv = e.target.value;
+            if (bleBuffer.length === 0) {
+              let history_count = dv.getUint8(0);
+              bleCompLen = 6 + history_count * 3;
+            }
+            for (let i = 0; i < dv.byteLength; i++) {
+              bleBuffer.push(dv.getUint8(i));
+            }
+            statusEl.innerText = `受信中... ${bleBuffer.length} / ${bleCompLen} bytes`;
+
+            if (bleBuffer.length >= bleCompLen && !isComplete) {
+              isComplete = true;
+              processComplete(new Uint8Array(bleBuffer));
+            }
           });
-          const server = await bleDevice.gatt.connect();
-          const service = await server.getPrimaryService(BLE_SERVICE_UUID);
-          bleRxChar = await service.getCharacteristic(BLE_CHAR_RX_UUID);
-          bleTxChar = await service.getCharacteristic(BLE_CHAR_TX_UUID);
+        } catch (err) {
+          alert("BLE接続エラー: " + err.message);
+          switchView(1);
         }
+      });
 
-        switchView(2);
-        document.getElementById("scanner-container").style.display = "none";
+      // AIログ取得処理
+      btnAiLog.addEventListener("click", async () => {
+        if (scanning && !isComplete) return;
+        if (isComplete) return;
 
-        statusEl.innerText = "AIログ転送要求を送信中...";
-        const enc = new TextEncoder();
-        await bleRxChar.writeValue(enc.encode("GET_AI_LOG"));
-        
-        await bleTxChar.startNotifications();
-        
-        let aiBuffer = [];
-        let receiveStartTime = Date.now();
-        
-        alert("⚠️【注意】\nAIログの全量転送には数分かかります。\nスマホの画面がスリープしないように時々タップし、この画面を開いたままお待ちください。");
-
-        bleTxChar.addEventListener("characteristicvaluechanged", (e) => {
-          const dv = e.target.value;
-          
-          if (dv.byteLength === 3 && dv.getUint8(0) === 69 && dv.getUint8(1) === 79 && dv.getUint8(2) === 70) {
-            bleTxChar.stopNotifications();
-            processAILogComplete(new Uint8Array(aiBuffer));
-            return;
+        try {
+          // 既に接続済みの場合はデバイス選択ダイアログをスキップして再利用
+          if (!bleDevice || !bleDevice.gatt.connected) {
+            bleDevice = await navigator.bluetooth.requestDevice({
+              filters: [{ namePrefix: "XIAO" }],
+              optionalServices: [BLE_SERVICE_UUID],
+            });
+            const server = await bleDevice.gatt.connect();
+            const service = await server.getPrimaryService(BLE_SERVICE_UUID);
+            bleRxChar = await service.getCharacteristic(BLE_CHAR_RX_UUID);
+            bleTxChar = await service.getCharacteristic(BLE_CHAR_TX_UUID);
           }
-          if (dv.byteLength === 9) {
-             let str = "";
-             for(let i=0; i<9; i++) str += String.fromCharCode(dv.getUint8(i));
-             if (str === "NO_AI_LOG") {
+
+          switchView(2);
+          document.getElementById("scanner-container").style.display = "none";
+
+          statusEl.innerText = "AIログ転送要求を送信中...";
+          const enc = new TextEncoder();
+          await bleRxChar.writeValue(enc.encode("GET_AI_LOG"));
+
+          await bleTxChar.startNotifications();
+
+          let aiBuffer = [];
+          let receiveStartTime = Date.now();
+
+          alert(
+            "⚠️【注意】\nAIログの全量転送には数分かかります。\nスマホの画面がスリープしないように時々タップし、この画面を開いたままお待ちください。",
+          );
+
+          bleTxChar.addEventListener("characteristicvaluechanged", (e) => {
+            const dv = e.target.value;
+
+            if (
+              dv.byteLength === 3 &&
+              dv.getUint8(0) === 69 &&
+              dv.getUint8(1) === 79 &&
+              dv.getUint8(2) === 70
+            ) {
+              bleTxChar.stopNotifications();
+              processAILogComplete(new Uint8Array(aiBuffer));
+              return;
+            }
+            if (dv.byteLength === 9) {
+              let str = "";
+              for (let i = 0; i < 9; i++)
+                str += String.fromCharCode(dv.getUint8(i));
+              if (str === "NO_AI_LOG") {
                 alert("マイコン内にAIログがまだありません。");
                 switchView(1);
                 bleTxChar.stopNotifications();
                 return;
-             }
-          }
-          
-          for (let i=0; i<dv.byteLength; i++) {
-            aiBuffer.push(dv.getUint8(i));
-          }
-          let elapsedSec = Math.floor((Date.now() - receiveStartTime) / 1000);
-          statusEl.innerText = `AIログ受信中... ${aiBuffer.length} bytes (${elapsedSec}秒経過)`;
-        });
+              }
+            }
 
-      } catch(err) {
-        alert("AIログ転送エラー: " + err.message);
-        switchView(1);
-      }
-    });
+            for (let i = 0; i < dv.byteLength; i++) {
+              aiBuffer.push(dv.getUint8(i));
+            }
+            let elapsedSec = Math.floor((Date.now() - receiveStartTime) / 1000);
+            statusEl.innerText = `AIログ受信中... ${aiBuffer.length} bytes (${elapsedSec}秒経過)`;
+          });
+        } catch (err) {
+          alert("AIログ転送エラー: " + err.message);
+          switchView(1);
+        }
+      });
 
-    function processAILogComplete(comp) {
-      statusEl.innerText = `🎉 AIログ受信完了！ (${comp.length} bytes)`;
-      
-      switchView(3);
-      document.getElementById("chart-container").style.display = "none";
-      
-      const dlWrapper = document.getElementById("dl-btn-wrapper");
-      dlWrapper.innerHTML = `
+      function processAILogComplete(comp) {
+        statusEl.innerText = `🎉 AIログ受信完了！ (${comp.length} bytes)`;
+
+        switchView(3);
+        document.getElementById("chart-container").style.display = "none";
+
+        const dlWrapper = document.getElementById("dl-btn-wrapper");
+        dlWrapper.innerHTML = `
         <button id="btn-dl-ai">💾 AI用バイナリ(.bin)を保存</button>
         <button id="btn-ai-predict" style="background: linear-gradient(135deg, #ec4899, #be185d); margin-top: 10px;">🔮 1ヶ月データから未来予測 ✨</button>
       `;
-      
-      let blob = new Blob([comp], { type: "application/octet-stream" });
-      
-      document.getElementById("btn-dl-ai").onclick = () => {
-        let ts = Math.floor(Date.now() / 1000);
-        downloadFileHelper(blob, `ai_env_log_${ts}.bin`);
-      };
 
-      document.getElementById("btn-ai-predict").onclick = async () => {
-        const savedApiKey = getApiKey();
-        if (!savedApiKey) {
-          alert("APIキーが設定されていません。\n右上の「⚙️設定」アイコンから入力・保存してください。");
-          return;
-        }
+        let blob = new Blob([comp], { type: "application/octet-stream" });
 
-        const btnPredict = document.getElementById("btn-ai-predict");
-        btnPredict.disabled = true;
-        
-        aiAdvicePanel.style.display = "flex";
-        aiAdviceContent.innerHTML = `<span class="loading-dots">1ヶ月のデータを解析して予測中</span>`;
+        document.getElementById("btn-dl-ai").onclick = () => {
+          let ts = Math.floor(Date.now() / 1000);
+          downloadFileHelper(blob, `ai_env_log_${ts}.bin`);
+        };
 
-        try {
-          const view = new DataView(comp.buffer);
-          const recordCount = Math.floor(comp.length / 12);
-          
-          const dailySummary = [];
-          let currentDay = { temps: [], hums: [] };
-          
-          // 後ろから(最新から)遡る
-          for (let i = recordCount - 1; i >= 0; i--) {
+        document.getElementById("btn-ai-predict").onclick = async () => {
+          const savedApiKey = getApiKey();
+          if (!savedApiKey) {
+            alert(
+              "APIキーが設定されていません。\n右上の「⚙️設定」アイコンから入力・保存してください。",
+            );
+            return;
+          }
+
+          const btnPredict = document.getElementById("btn-ai-predict");
+          btnPredict.disabled = true;
+
+          aiAdvicePanel.style.display = "flex";
+          aiAdviceContent.innerHTML = `<span class="loading-dots">1ヶ月のデータを解析して予測中</span>`;
+
+          try {
+            const view = new DataView(comp.buffer);
+            const recordCount = Math.floor(comp.length / 12);
+
+            const dailySummary = [];
+            let currentDay = { temps: [], hums: [] };
+
+            // 後ろから(最新から)遡る
+            for (let i = recordCount - 1; i >= 0; i--) {
               let offset = i * 12;
               let t = view.getFloat32(offset, true);
               let h = view.getFloat32(offset + 4, true);
-              
+
               currentDay.temps.push(t);
               currentDay.hums.push(h);
-              
+
               if (currentDay.temps.length === 1440 || i === 0) {
-                  let maxT = Math.max(...currentDay.temps).toFixed(1);
-                  let minT = Math.min(...currentDay.temps).toFixed(1);
-                  let avgT = (currentDay.temps.reduce((a,b)=>a+b,0)/currentDay.temps.length).toFixed(1);
-                  
-                  dailySummary.push(`・${dailySummary.length + 1}日前: 最高 ${maxT}℃ / 最低 ${minT}℃ / 平均 ${avgT}℃`);
-                  currentDay = { temps: [], hums: [] };
+                let maxT = Math.max(...currentDay.temps).toFixed(1);
+                let minT = Math.min(...currentDay.temps).toFixed(1);
+                let avgT = (
+                  currentDay.temps.reduce((a, b) => a + b, 0) /
+                  currentDay.temps.length
+                ).toFixed(1);
+
+                dailySummary.push(
+                  `・${dailySummary.length + 1}日前: 最高 ${maxT}℃ / 最低 ${minT}℃ / 平均 ${avgT}℃`,
+                );
+                currentDay = { temps: [], hums: [] };
               }
-          }
-          
-          // トークン節約のため最大30日分にする
-          const summaryText = dailySummary.slice(0, 30).reverse().join("\n");
-          
-          const prompt = `
+            }
+
+            // トークン節約のため最大30日分にする
+            const summaryText = dailySummary.slice(0, 30).reverse().join("\n");
+
+            const prompt = `
 あなたは優れた環境データアナリストです。以下の過去約1ヶ月間の日ごとの温湿度データ（最高/最低/平均）に基づいて、
 「明日（あるいは今後数日）の予想最高・最低気温のトレンド予測」と「予測に基づく具体的な注意点（熱中症、カビ、寒さなど）」を提示してください。
 回答は親しみやすいトーンで、箇条書きなどを交えて簡潔にまとめてください。
@@ -838,200 +1063,226 @@
 ${summaryText}
           `;
 
-          // API使用量を抑えるため、gemini-2.5-flash（安定版）を使用
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${savedApiKey}`;
-          const payload = {
-            contents: [{ parts: [{ text: prompt }] }],
-            systemInstruction: { parts: [{ text: "回答は日本語で提供してください。専門用語は避け、分かりやすい予測アドバイスを心がけてください。" }] }
-          };
+            // API使用量を抑えるため、gemini-2.5-flash（安定版）を使用
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${savedApiKey}`;
+            const payload = {
+              contents: [{ parts: [{ text: prompt }] }],
+              systemInstruction: {
+                parts: [
+                  {
+                    text: "回答は日本語で提供してください。専門用語は避け、分かりやすい予測アドバイスを心がけてください。",
+                  },
+                ],
+              },
+            };
 
-          const result = await fetchWithRetry(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-          
-          const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (text) {
-            aiAdviceContent.innerHTML = text.replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
-          } else {
-            aiAdviceContent.innerHTML = "予測データを正しく取得できませんでした。";
+            const result = await fetchWithRetry(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+
+            const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text) {
+              aiAdviceContent.innerHTML = escapeHTML(text)
+                .replace(/\\n/g, "<br>")
+                .replace(/\n/g, "<br>");
+            } else {
+              aiAdviceContent.innerHTML =
+                "予測データを正しく取得できませんでした。";
+            }
+          } catch (error) {
+            aiAdviceContent.innerHTML = `通信エラーが発生しました。<br><span style="font-size:0.75rem; color:#ef4444;">${escapeHTML(error.message)}</span>`;
+          } finally {
+            btnPredict.disabled = false;
+            btnPredict.innerText = "🔮 予測を再生成 ✨";
           }
-        } catch (error) {
-          aiAdviceContent.innerHTML = `通信エラーが発生しました。<br><span style="font-size:0.75rem; color:#ef4444;">${error.message}</span>`;
-        } finally {
-          btnPredict.disabled = false;
-          btnPredict.innerText = "🔮 予測を再生成 ✨";
-        }
-      };
-    }
-
-    function initBlocks(total) {
-      if (expectedPages === total) return;
-      expectedPages = total;
-      receivedPayloads = new Array(total).fill(null);
-      blocksEl.innerHTML = "";
-      for(let i=0; i<total; i++) {
-        let b = document.createElement("div");
-        b.className = "block";
-        b.id = "block-" + i;
-        blocksEl.appendChild(b);
-      }
-    }
-
-    // Expose functions for testing
-    if (typeof window !== 'undefined') {
-      window.initBlocks = initBlocks;
-      window.getTestState = function() {
-        return {
-          expectedPages: expectedPages,
-          receivedPayloads: receivedPayloads
         };
-      };
-    }
+      }
 
-    const scanLine = document.getElementById("scan-line");
-    function setScanColor(color) {
-      if(!scanLine) return;
-      scanLine.style.background = color;
-      scanLine.style.boxShadow = `0 0 20px ${color}`;
-    }
+      function initBlocks(total) {
+        if (expectedPages === total) return;
+        expectedPages = total;
+        receivedPayloads = new Array(total).fill(null);
+        blocksEl.innerHTML = "";
+        for (let i = 0; i < total; i++) {
+          let b = document.createElement("div");
+          b.className = "block";
+          b.id = "block-" + i;
+          blocksEl.appendChild(b);
+        }
+      }
 
-    function tick() {
-      if (!scanning) return;
-      if (video.readyState === video.HAVE_ENOUGH_DATA && !isComplete) {
-        canvas.width = Math.min(video.videoWidth, 600);
-        canvas.height = canvas.width * (video.videoHeight / video.videoWidth);
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        let code = jsQR(imageData.data, imageData.width, imageData.height, {
-          inversionAttempts: "attemptBoth",
-        });
+      // Expose functions for testing
+      if (typeof window !== "undefined") {
+        window.initBlocks = initBlocks;
+        window.getTestState = function () {
+          return {
+            expectedPages: expectedPages,
+            receivedPayloads: receivedPayloads,
+          };
+        };
+      }
 
-        if (!code) {
-          setScanColor("var(--accent)");
-          if (!statusEl.innerText.includes("/")) statusEl.innerText = "読み取り中... 📱";
-        } else if (!code.binaryData || code.binaryData.length < 2) {
-          setScanColor("#f59e0b");
-          statusEl.innerText = "⚠️ QR検出：バイナリ属性なし";
-        } else {
-          let page = code.binaryData[0];
-          let total = code.binaryData[1];
-          let chunk = Array.from(code.binaryData.slice(2));
+      const scanLine = document.getElementById("scan-line");
+      function setScanColor(color) {
+        if (!scanLine) return;
+        scanLine.style.background = color;
+        scanLine.style.boxShadow = `0 0 20px ${color}`;
+      }
 
-          if (total === 0 || total >= 50) {
+      function tick() {
+        if (!scanning) return;
+        if (video.readyState === video.HAVE_ENOUGH_DATA && !isComplete) {
+          canvas.width = Math.min(video.videoWidth, 600);
+          canvas.height = canvas.width * (video.videoHeight / video.videoWidth);
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+          let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          let code = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: "attemptBoth",
+          });
+
+          if (!code) {
+            setScanColor("var(--accent)");
+            if (!statusEl.innerText.includes("/"))
+              statusEl.innerText = "読み取り中... 📱";
+          } else if (!code.binaryData || code.binaryData.length < 2) {
             setScanColor("#f59e0b");
-            statusEl.innerText = `⚠️ QR検出：page=${page} total=${total} (不正)`;
+            statusEl.innerText = "⚠️ QR検出：バイナリ属性なし";
           } else {
-            setScanColor("#34d399");
-            initBlocks(total);
-            if (page < total && !receivedPayloads[page]) {
-              receivedPayloads[page] = chunk;
-              let el = document.getElementById("block-" + page);
-              if (el) el.classList.add("active");
-              let count = receivedPayloads.filter(x => x !== null).length;
-              statusEl.innerText = `✅ ${count} / ${total} ページ完了`;
-              if (count === total) { isComplete = true; processComplete(); }
+            let page = code.binaryData[0];
+            let total = code.binaryData[1];
+            let chunk = Array.from(code.binaryData.slice(2));
+
+            if (total === 0 || total >= 50) {
+              setScanColor("#f59e0b");
+              statusEl.innerText = `⚠️ QR検出：page=${page} total=${total} (不正)`;
+            } else {
+              setScanColor("#34d399");
+              initBlocks(total);
+              if (page < total && !receivedPayloads[page]) {
+                receivedPayloads[page] = chunk;
+                let el = document.getElementById("block-" + page);
+                if (el) el.classList.add("active");
+                let count = receivedPayloads.filter((x) => x !== null).length;
+                statusEl.innerText = `✅ ${count} / ${total} ページ完了`;
+                if (count === total) {
+                  isComplete = true;
+                  processComplete();
+                }
+              }
             }
           }
         }
+        if (!isComplete) requestAnimationFrame(tick);
       }
-      if (!isComplete) requestAnimationFrame(tick);
-    }
 
-    function processComplete(directBuffer = null) {
-      scanning = false;
-      if (video.srcObject) {
-         const tracks = video.srcObject.getTracks();
-         tracks.forEach(t => t.stop());
-      }
-      
-      let comp;
-      if (directBuffer) {
-        comp = directBuffer;
-      } else {
-        comp = new Uint8Array(receivedPayloads.flat());
-      }
-      
-      let history_count = comp[0];
-      let ts = new DataView(comp.buffer).getUint32(2, true); 
-      
-      let labels = [], temp_data = [], hum_data = [], di_data = [];
-      let csvRows = ["Timestamp,Temperature(C),Humidity(%),DiscomfortIndex"];
-      let pos_t = 6, pos_h = 6 + history_count, pos_di = 6 + history_count * 2;
-      
-      for(let i=0; i<history_count; i++) {
-        let temp = (comp[pos_t + i] / 5.0) + 10.0;
-        let hum = comp[pos_h + i] / 2.55;
-        let di = (comp[pos_di + i] / 4.0) + 30.0;
-        
-        let agoMins = (history_count - 1 - i) * 12;
-        let pTime = new Date((ts - agoMins * 60) * 1000);
-        let pad = n => ('0'+n).slice(-2);
-        
-        let timeStr = `${pTime.getFullYear()}-${pad(pTime.getMonth()+1)}-${pad(pTime.getDate())} ${pad(pTime.getHours())}:${pad(pTime.getMinutes())}:${pad(pTime.getSeconds())}`;
-        let shortTimeStr = `${pad(pTime.getHours())}:${pad(pTime.getMinutes())}`;
-        
-        labels.push(shortTimeStr);
-        temp_data.push(temp.toFixed(1));
-        hum_data.push(hum.toFixed(1));
-        di_data.push(di);
-        csvRows.push(`${timeStr},${temp.toFixed(1)},${hum.toFixed(1)},${di.toFixed(1)}`);
-      }
-      let csv = csvRows.join("\n") + "\n";
-      
-      const tempFloats = temp_data.map(v => parseFloat(v));
-      const humFloats = hum_data.map(v => parseFloat(v));
-      currentEnvData = {
-        labels: labels,
-        tempData: tempFloats,
-        humData: humFloats,
-        maxTemp: Math.max(...tempFloats).toFixed(1),
-        minTemp: Math.min(...tempFloats).toFixed(1),
-        avgTemp: (tempFloats.reduce((a, b) => a + b, 0) / tempFloats.length).toFixed(1),
-        avgHum: (humFloats.reduce((a, b) => a + b, 0) / humFloats.length).toFixed(1)
-      };
+      function processComplete(directBuffer = null) {
+        scanning = false;
+        if (video.srcObject) {
+          const tracks = video.srcObject.getTracks();
+          tracks.forEach((t) => t.stop());
+        }
 
-      switchView(3);
-      const chartContainer = document.getElementById("chart-container");
-      chartContainer.style.display = "block";
-      
-      const dlWrapper = document.getElementById("dl-btn-wrapper");
-      dlWrapper.innerHTML = `<button id="btn-dl">💾 CSVをダウンロード</button>`;
-      
-      btnAiAdvice.style.display = "block";
-      
-      if (!document.getElementById("di-legend")) {
-        const legend = document.createElement("div");
-        legend.id = "di-legend";
-        legend.className = "di-legend";
-        legend.innerHTML = `
+        let comp;
+        if (directBuffer) {
+          comp = directBuffer;
+        } else {
+          comp = new Uint8Array(receivedPayloads.flat());
+        }
+
+        let history_count = comp[0];
+        let ts = new DataView(comp.buffer).getUint32(2, true);
+
+        let labels = [],
+          temp_data = [],
+          hum_data = [],
+          di_data = [];
+        let csvRows = ["Timestamp,Temperature(C),Humidity(%),DiscomfortIndex"];
+        let pos_t = 6,
+          pos_h = 6 + history_count,
+          pos_di = 6 + history_count * 2;
+
+        for (let i = 0; i < history_count; i++) {
+          let temp = comp[pos_t + i] / 5.0 + 10.0;
+          let hum = comp[pos_h + i] / 2.55;
+          let di = comp[pos_di + i] / 4.0 + 30.0;
+
+          let agoMins = (history_count - 1 - i) * 12;
+          let pTime = new Date((ts - agoMins * 60) * 1000);
+          let pad = (n) => ("0" + n).slice(-2);
+
+          let timeStr = `${pTime.getFullYear()}-${pad(pTime.getMonth() + 1)}-${pad(pTime.getDate())} ${pad(pTime.getHours())}:${pad(pTime.getMinutes())}:${pad(pTime.getSeconds())}`;
+          let shortTimeStr = `${pad(pTime.getHours())}:${pad(pTime.getMinutes())}`;
+
+          labels.push(shortTimeStr);
+          temp_data.push(temp.toFixed(1));
+          hum_data.push(hum.toFixed(1));
+          di_data.push(di);
+          csvRows.push(
+            `${timeStr},${temp.toFixed(1)},${hum.toFixed(1)},${di.toFixed(1)}`,
+          );
+        }
+        let csv = csvRows.join("\n") + "\n";
+
+        const tempFloats = temp_data.map((v) => parseFloat(v));
+        const humFloats = hum_data.map((v) => parseFloat(v));
+        currentEnvData = {
+          labels: labels,
+          tempData: tempFloats,
+          humData: humFloats,
+          maxTemp: Math.max(...tempFloats).toFixed(1),
+          minTemp: Math.min(...tempFloats).toFixed(1),
+          avgTemp: (
+            tempFloats.reduce((a, b) => a + b, 0) / tempFloats.length
+          ).toFixed(1),
+          avgHum: (
+            humFloats.reduce((a, b) => a + b, 0) / humFloats.length
+          ).toFixed(1),
+        };
+
+        switchView(3);
+        const chartContainer = document.getElementById("chart-container");
+        chartContainer.style.display = "block";
+
+        const dlWrapper = document.getElementById("dl-btn-wrapper");
+        dlWrapper.innerHTML = `<button id="btn-dl">💾 CSVをダウンロード</button>`;
+
+        btnAiAdvice.style.display = "block";
+
+        if (!document.getElementById("di-legend")) {
+          const legend = document.createElement("div");
+          legend.id = "di-legend";
+          legend.className = "di-legend";
+          legend.innerHTML = `
           <div class="di-legend-item"><div class="di-box danger"></div>危険</div>
           <div class="di-legend-item"><div class="di-box alert"></div>警戒</div>
           <div class="di-legend-item"><div class="di-box warn"></div>やや暑</div>
           <div class="di-legend-item"><div class="di-box comfort"></div>快適</div>
           <div class="di-legend-item"><div class="di-box cold"></div>寒い</div>
         `;
-        chartContainer.appendChild(legend);
-      }
-      
-      let hotCount = 0, comfortCount = 0, coldCount = 0;
-      for (let d of di_data) {
-        if (d >= 75) hotCount++;
-        else if (d < 55) coldCount++;
-        else comfortCount++;
-      }
-      let totalCount = di_data.length || 1;
-      let hotPct = ((hotCount / totalCount) * 100).toFixed(1);
-      let comfortPct = ((comfortCount / totalCount) * 100).toFixed(1);
-      let coldPct = ((coldCount / totalCount) * 100).toFixed(1);
+          chartContainer.appendChild(legend);
+        }
 
-      let summaryEl = document.getElementById("di-summary");
-      if (!summaryEl) {
-        summaryEl = document.createElement("div");
-        summaryEl.id = "di-summary";
-        summaryEl.innerHTML = `
+        let hotCount = 0,
+          comfortCount = 0,
+          coldCount = 0;
+        for (let d of di_data) {
+          if (d >= 75) hotCount++;
+          else if (d < 55) coldCount++;
+          else comfortCount++;
+        }
+        let totalCount = di_data.length || 1;
+        let hotPct = ((hotCount / totalCount) * 100).toFixed(1);
+        let comfortPct = ((comfortCount / totalCount) * 100).toFixed(1);
+        let coldPct = ((coldCount / totalCount) * 100).toFixed(1);
+
+        let summaryEl = document.getElementById("di-summary");
+        if (!summaryEl) {
+          summaryEl = document.createElement("div");
+          summaryEl.id = "di-summary";
+          summaryEl.innerHTML = `
           <table class="di-summary-table">
             <tr>
               <th>暑い・危険 (DI≧75)</th>
@@ -1045,77 +1296,118 @@ ${summaryText}
             </tr>
           </table>
         `;
-        chartContainer.appendChild(summaryEl);
-      }
-      
-      // textContentを用いて数値データを安全に流し込む (XSS対策)
-      document.getElementById("di-summary-hot").textContent = `${hotPct} %`;
-      document.getElementById("di-summary-comfort").textContent = `${comfortPct} %`;
-      document.getElementById("di-summary-cold").textContent = `${coldPct} %`;
-
-      const diBackgroundPlugin = {
-        id: 'diBackground',
-        beforeDatasetsDraw: (chart) => {
-          const { ctx, chartArea, scales: { x } } = chart;
-          ctx.save();
-          let lastColor = null;
-          for (let i = 0; i < di_data.length; i++) {
-            const diValue = di_data[i];
-            let color = 'rgba(0, 0, 0, 0)';
-            if (diValue >= 85) color = 'rgba(239, 68, 68, 0.35)';
-            else if (diValue >= 80) color = 'rgba(245, 158, 11, 0.3)';
-            else if (diValue >= 75) color = 'rgba(252, 211, 77, 0.25)';
-            else if (diValue < 55) color = 'rgba(59, 130, 246, 0.25)';
-            else color = 'rgba(16, 185, 129, 0.12)';
-            
-            const startX = x.getPixelForValue(i - 0.5);
-            const endX = x.getPixelForValue(i + 0.5);
-            
-            // 色が変わったときのみfillStyleを設定し、Canvas処理を効率化
-            if (color !== lastColor) {
-              ctx.fillStyle = color;
-              lastColor = color;
-            }
-            ctx.fillRect(startX, chartArea.top, endX - startX, chartArea.bottom - chartArea.top);
-          }
-          ctx.restore();
+          chartContainer.appendChild(summaryEl);
         }
-      };
-      
-      if (myChart) {
-        myChart.destroy();
-      }
-      
-      const ctxChart = document.getElementById("chart").getContext("2d");
-      myChart = new Chart(ctxChart, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [
-            { label: '温度 (°C)', data: temp_data, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', yAxisID: 'y', tension: 0.3, fill: false },
-            { label: '湿度 (%)', data: hum_data, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', yAxisID: 'y1', tension: 0.3, fill: false }
-          ]
-        },
-        options: {
-          responsive: true,
-          interaction: { mode: 'index', intersect: false },
-          scales: {
-            x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.1)' } },
-            y: { type: 'linear', display: true, position: 'left', ticks: { color: '#10b981' }, grid: { color: 'rgba(255,255,255,0.1)' } },
-            y1: { type: 'linear', display: true, position: 'right', ticks: { color: '#3b82f6' }, grid: { drawOnChartArea: false } }
+
+        // textContentを用いて数値データを安全に流し込む (XSS対策)
+        document.getElementById("di-summary-hot").textContent = `${hotPct} %`;
+        document.getElementById("di-summary-comfort").textContent =
+          `${comfortPct} %`;
+        document.getElementById("di-summary-cold").textContent = `${coldPct} %`;
+
+        const diBackgroundPlugin = {
+          id: "diBackground",
+          beforeDatasetsDraw: (chart) => {
+            const {
+              ctx,
+              chartArea,
+              scales: { x },
+            } = chart;
+            ctx.save();
+            let lastColor = null;
+            for (let i = 0; i < di_data.length; i++) {
+              const diValue = di_data[i];
+              let color = "rgba(0, 0, 0, 0)";
+              if (diValue >= 85) color = "rgba(239, 68, 68, 0.35)";
+              else if (diValue >= 80) color = "rgba(245, 158, 11, 0.3)";
+              else if (diValue >= 75) color = "rgba(252, 211, 77, 0.25)";
+              else if (diValue < 55) color = "rgba(59, 130, 246, 0.25)";
+              else color = "rgba(16, 185, 129, 0.12)";
+
+              const startX = x.getPixelForValue(i - 0.5);
+              const endX = x.getPixelForValue(i + 0.5);
+
+              // 色が変わったときのみfillStyleを設定し、Canvas処理を効率化
+              if (color !== lastColor) {
+                ctx.fillStyle = color;
+                lastColor = color;
+              }
+              ctx.fillRect(
+                startX,
+                chartArea.top,
+                endX - startX,
+                chartArea.bottom - chartArea.top,
+              );
+            }
+            ctx.restore();
           },
-          plugins: { legend: { labels: { color: '#f8fafc' } } }
-        },
-        plugins: [diBackgroundPlugin]
-      });
-      
-      let blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      document.getElementById("btn-dl").onclick = () => {
-        downloadFileHelper(blob, `env_history_${ts}.csv`);
-      };
-    }
-    
-    switchView(1);
-  </script>
-</body>
+        };
+
+        if (myChart) {
+          myChart.destroy();
+        }
+
+        const ctxChart = document.getElementById("chart").getContext("2d");
+        myChart = new Chart(ctxChart, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "温度 (°C)",
+                data: temp_data,
+                borderColor: "#10b981",
+                backgroundColor: "rgba(16, 185, 129, 0.1)",
+                yAxisID: "y",
+                tension: 0.3,
+                fill: false,
+              },
+              {
+                label: "湿度 (%)",
+                data: hum_data,
+                borderColor: "#3b82f6",
+                backgroundColor: "rgba(59, 130, 246, 0.1)",
+                yAxisID: "y1",
+                tension: 0.3,
+                fill: false,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            interaction: { mode: "index", intersect: false },
+            scales: {
+              x: {
+                ticks: { color: "#94a3b8" },
+                grid: { color: "rgba(255,255,255,0.1)" },
+              },
+              y: {
+                type: "linear",
+                display: true,
+                position: "left",
+                ticks: { color: "#10b981" },
+                grid: { color: "rgba(255,255,255,0.1)" },
+              },
+              y1: {
+                type: "linear",
+                display: true,
+                position: "right",
+                ticks: { color: "#3b82f6" },
+                grid: { drawOnChartArea: false },
+              },
+            },
+            plugins: { legend: { labels: { color: "#f8fafc" } } },
+          },
+          plugins: [diBackgroundPlugin],
+        });
+
+        let blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        document.getElementById("btn-dl").onclick = () => {
+          downloadFileHelper(blob, `env_history_${ts}.csv`);
+        };
+      }
+
+      switchView(1);
+    </script>
+  </body>
 </html>
