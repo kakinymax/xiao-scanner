@@ -1,0 +1,3 @@
+## 2024-06-25 - [Canvas Reallocation Overhead in Animation Loops]
+**Learning:** Unconditionally assigning `canvas.width` and `canvas.height` on every frame inside a `requestAnimationFrame` loop forces the browser to continually destroy and reallocate the canvas backing store, even if the values have not changed. This causes significant, unnecessary performance overhead.
+**Action:** When updating canvas dimensions dynamically, always cache the previous dimensions (using `Math.floor` for safe integer comparison) and conditionally apply updates to `canvas.width` and `canvas.height` only when they differ.
