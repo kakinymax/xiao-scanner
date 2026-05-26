@@ -1,0 +1,3 @@
+## 2025-05-26 - [Canvas Resizing in requestAnimationFrame]
+ **Learning:** In requestAnimationFrame loops, unconditionally updating canvas.width and canvas.height causes continuous browser backing store reallocations and context resets, even if the values are theoretically identical (e.g. floats). This creates unnecessary performance overhead in tight animation frames.
+ **Action:** Always compute target canvas dimensions as integers using Math.floor(), and conditionally assign them to canvas.width/height ONLY if they actually differ from the current canvas properties.
