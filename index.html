@@ -342,6 +342,20 @@
   </div>
 
   <script>
+    function escapeHTML(str) {
+      if (typeof str !== 'string') return str;
+      return str.replace(/[&<>"']/g, function(match) {
+        switch (match) {
+          case '&': return '&amp;';
+          case '<': return '&lt;';
+          case '>': return '&gt;';
+          case '"': return '&quot;';
+          case "'": return '&#39;';
+          default: return match;
+        }
+      });
+    }
+
     const video = document.getElementById("video");
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
@@ -564,12 +578,12 @@
         
         const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
         if (text) {
-          aiAdviceContent.innerHTML = text.replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
+          aiAdviceContent.innerHTML = escapeHTML(text).replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
         } else {
           aiAdviceContent.innerHTML = "AIからの応答を正しく取得できませんでした。";
         }
       } catch (error) {
-        aiAdviceContent.innerHTML = `通信エラーが発生しました。<br><span style="font-size:0.75rem; color:#ef4444;">${error.message}</span>`;
+        aiAdviceContent.innerHTML = `通信エラーが発生しました。<br><span style="font-size:0.75rem; color:#ef4444;">${escapeHTML(error.message)}</span>`;
       } finally {
         btnAiAdvice.disabled = false;
         btnAiAdvice.innerText = "🤖 アドバイスを再生成 ✨";
@@ -853,12 +867,12 @@ ${summaryText}
           
           const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
           if (text) {
-            aiAdviceContent.innerHTML = text.replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
+            aiAdviceContent.innerHTML = escapeHTML(text).replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
           } else {
             aiAdviceContent.innerHTML = "予測データを正しく取得できませんでした。";
           }
         } catch (error) {
-          aiAdviceContent.innerHTML = `通信エラーが発生しました。<br><span style="font-size:0.75rem; color:#ef4444;">${error.message}</span>`;
+          aiAdviceContent.innerHTML = `通信エラーが発生しました。<br><span style="font-size:0.75rem; color:#ef4444;">${escapeHTML(error.message)}</span>`;
         } finally {
           btnPredict.disabled = false;
           btnPredict.innerText = "🔮 予測を再生成 ✨";
