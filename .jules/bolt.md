@@ -1,0 +1,3 @@
+## 2024-05-27 - [Canvas Dimension Re-assignment Bottleneck]
+**Learning:** Reassigning `canvas.width` and `canvas.height` continuously inside a `requestAnimationFrame` loop, even with the same calculated floating-point values, triggers expensive browser backing store reallocations and canvas context resets because DOM dimensions are internally resolved to integers causing float-to-integer mismatch re-assignments.
+**Action:** When setting canvas dimensions derived from video or container sizes in tight loops, always ensure calculated dimensions are integers (e.g., using `Math.floor()`) and conditionally update `canvas.width` and `canvas.height` only when the dimensions have actually changed.
