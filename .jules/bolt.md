@@ -1,0 +1,3 @@
+## 2026-05-29 - [Canvas Backing Store Reallocation in requestAnimationFrame]
+**Learning:** Reassigning `canvas.width` or `canvas.height` unconditionally in a tight loop like `requestAnimationFrame` causes the browser to continuously reallocate the canvas backing store and reset its 2D context, even if the new dimensions are nominally the same due to float-to-integer conversion mismatch.
+**Action:** Always calculate dimensions as integers (e.g., using `Math.floor()`) and perform a conditional check (`if (canvas.width !== newWidth || canvas.height !== newHeight)`) before assigning new dimensions to a canvas in a continuous rendering loop.
