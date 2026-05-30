@@ -380,6 +380,21 @@
     const BLE_CHAR_RX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
     const BLE_CHAR_TX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a9";
 
+
+    // XSS対策用サニタイズ関数
+    function escapeHTML(str) {
+      if (typeof str !== 'string') return '';
+      return str.replace(/[&<>"']/g, function(match) {
+        switch (match) {
+          case '&': return '&amp;';
+          case '<': return '&lt;';
+          case '>': return '&gt;';
+          case '"': return '&quot;';
+          case "'": return '&#39;';
+        }
+      });
+    }
+
     // Viewの切り替え管理関数
     function switchView(phase) {
       document.getElementById("phase-setup").style.display = (phase === 1) ? "flex" : "none";
@@ -564,12 +579,12 @@
         
         const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
         if (text) {
-          aiAdviceContent.innerHTML = text.replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
+          aiAdviceContent.innerHTML = escapeHTML(text).replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
         } else {
           aiAdviceContent.innerHTML = "AIからの応答を正しく取得できませんでした。";
         }
       } catch (error) {
-        aiAdviceContent.innerHTML = `通信エラーが発生しました。<br><span style="font-size:0.75rem; color:#ef4444;">${error.message}</span>`;
+        aiAdviceContent.innerHTML = `通信エラーが発生しました。<br><span style="font-size:0.75rem; color:#ef4444;">${escapeHTML(error.message)}</span>`;
       } finally {
         btnAiAdvice.disabled = false;
         btnAiAdvice.innerText = "🤖 アドバイスを再生成 ✨";
@@ -853,12 +868,12 @@ ${summaryText}
           
           const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
           if (text) {
-            aiAdviceContent.innerHTML = text.replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
+            aiAdviceContent.innerHTML = escapeHTML(text).replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
           } else {
             aiAdviceContent.innerHTML = "予測データを正しく取得できませんでした。";
           }
         } catch (error) {
-          aiAdviceContent.innerHTML = `通信エラーが発生しました。<br><span style="font-size:0.75rem; color:#ef4444;">${error.message}</span>`;
+          aiAdviceContent.innerHTML = `通信エラーが発生しました。<br><span style="font-size:0.75rem; color:#ef4444;">${escapeHTML(error.message)}</span>`;
         } finally {
           btnPredict.disabled = false;
           btnPredict.innerText = "🔮 予測を再生成 ✨";
