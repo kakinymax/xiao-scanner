@@ -1,0 +1,3 @@
+## 2026-05-31 - [Canvas requestAnimationFrame Performance Optimization]
+**Learning:** Continuous reassignment of `canvas.width` and `canvas.height` with floating point numbers inside `requestAnimationFrame` forces the browser to continually reallocate the canvas backing store and reset the 2D rendering context, causing severe performance bottlenecks.
+**Action:** Always ensure target width and height are integers (e.g., using `Math.floor`) before comparing them to existing `canvas.width` / `canvas.height`, and only perform assignment if the dimensions have actually changed.
