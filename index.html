@@ -618,8 +618,12 @@
 
         // UI要素の初期化
         statusEl.innerText = "Waiting...";
-        blocksEl.innerHTML =
-          '<span style="font-size: 0.8rem; color: #64748b; margin: auto;">待機中...</span>';
+        const span = document.createElement("span");
+        span.style.fontSize = "0.8rem";
+        span.style.color = "#64748b";
+        span.style.margin = "auto";
+        span.textContent = "待機中...";
+        blocksEl.replaceChildren(span);
         document.getElementById("scanner-container").style.display = "block";
 
         const scanLine = document.getElementById("scan-line");
@@ -637,11 +641,11 @@
         if (summaryEl) summaryEl.remove();
         const legendEl = document.getElementById("di-legend");
         if (legendEl) legendEl.remove();
-        document.getElementById("dl-btn-wrapper").innerHTML = "";
+        document.getElementById("dl-btn-wrapper").replaceChildren();
 
         btnAiAdvice.style.display = "none";
         aiAdvicePanel.style.display = "none";
-        aiAdviceContent.innerHTML = "";
+        aiAdviceContent.replaceChildren();
 
         // BLE接続を切断（画面リセット時は不要なので切断しないが、
         // 明示的にリセットする場合は切断する）
@@ -710,7 +714,10 @@
 
         btnAiAdvice.disabled = true;
         aiAdvicePanel.style.display = "flex";
-        aiAdviceContent.innerHTML = `<span class="loading-dots">環境データをAIが分析中</span>`;
+        const span = document.createElement("span");
+        span.className = "loading-dots";
+        span.textContent = "環境データをAIが分析中";
+        aiAdviceContent.replaceChildren(span);
 
         // モデル: gemini-2.5-flash（安定版）
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${savedApiKey}`;
@@ -746,15 +753,22 @@
 
           const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
           if (text) {
-            aiAdviceContent.innerHTML = text
-              .replace(/\\n/g, "<br>")
-              .replace(/\n/g, "<br>");
+            setSafeHTML(aiAdviceContent, text);
           } else {
-            aiAdviceContent.innerHTML =
+            aiAdviceContent.textContent =
               "AIからの応答を正しく取得できませんでした。";
           }
         } catch (error) {
-          aiAdviceContent.innerHTML = `通信エラーが発生しました。<br><span style="font-size:0.75rem; color:#ef4444;">${error.message}</span>`;
+          aiAdviceContent.replaceChildren();
+          aiAdviceContent.appendChild(
+            document.createTextNode("通信エラーが発生しました。"),
+          );
+          aiAdviceContent.appendChild(document.createElement("br"));
+          const errSpan = document.createElement("span");
+          errSpan.style.fontSize = "0.75rem";
+          errSpan.style.color = "#ef4444";
+          errSpan.textContent = error.message;
+          aiAdviceContent.appendChild(errSpan);
         } finally {
           btnAiAdvice.disabled = false;
           btnAiAdvice.innerText = "🤖 アドバイスを再生成 ✨";
@@ -836,7 +850,7 @@
           requestAnimationFrame(tick);
           scanning = true;
           statusEl.innerText = "読み取り中... 📱";
-          blocksEl.innerHTML = "";
+          blocksEl.replaceChildren();
         } catch (err) {
           alert("カメラエラー詳細: " + err.message);
           switchView(1);
@@ -978,10 +992,20 @@
         document.getElementById("chart-container").style.display = "none";
 
         const dlWrapper = document.getElementById("dl-btn-wrapper");
-        dlWrapper.innerHTML = `
-        <button id="btn-dl-ai">💾 AI用バイナリ(.bin)を保存</button>
-        <button id="btn-ai-predict" style="background: linear-gradient(135deg, #ec4899, #be185d); margin-top: 10px;">🔮 1ヶ月データから未来予測 ✨</button>
-      `;
+        dlWrapper.replaceChildren();
+        const btnDlAi = document.createElement("button");
+        btnDlAi.id = "btn-dl-ai";
+        btnDlAi.textContent = "💾 AI用バイナリ(.bin)を保存";
+
+        const btnAiPredict = document.createElement("button");
+        btnAiPredict.id = "btn-ai-predict";
+        btnAiPredict.style.background =
+          "linear-gradient(135deg, #ec4899, #be185d)";
+        btnAiPredict.style.marginTop = "10px";
+        btnAiPredict.textContent = "🔮 1ヶ月データから未来予測 ✨";
+
+        dlWrapper.appendChild(btnDlAi);
+        dlWrapper.appendChild(btnAiPredict);
 
         let blob = new Blob([comp], { type: "application/octet-stream" });
 
@@ -1003,7 +1027,10 @@
           btnPredict.disabled = true;
 
           aiAdvicePanel.style.display = "flex";
-          aiAdviceContent.innerHTML = `<span class="loading-dots">1ヶ月のデータを解析して予測中</span>`;
+          const span = document.createElement("span");
+          span.className = "loading-dots";
+          span.textContent = "1ヶ月のデータを解析して予測中";
+          aiAdviceContent.replaceChildren(span);
 
           try {
             const view = new DataView(comp.buffer);
@@ -1069,15 +1096,22 @@ ${summaryText}
 
             const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
             if (text) {
-              aiAdviceContent.innerHTML = text
-                .replace(/\\n/g, "<br>")
-                .replace(/\n/g, "<br>");
+              setSafeHTML(aiAdviceContent, text);
             } else {
-              aiAdviceContent.innerHTML =
+              aiAdviceContent.textContent =
                 "予測データを正しく取得できませんでした。";
             }
           } catch (error) {
-            aiAdviceContent.innerHTML = `通信エラーが発生しました。<br><span style="font-size:0.75rem; color:#ef4444;">${error.message}</span>`;
+            aiAdviceContent.replaceChildren();
+            aiAdviceContent.appendChild(
+              document.createTextNode("通信エラーが発生しました。"),
+            );
+            aiAdviceContent.appendChild(document.createElement("br"));
+            const errSpan = document.createElement("span");
+            errSpan.style.fontSize = "0.75rem";
+            errSpan.style.color = "#ef4444";
+            errSpan.textContent = error.message;
+            aiAdviceContent.appendChild(errSpan);
           } finally {
             btnPredict.disabled = false;
             btnPredict.innerText = "🔮 予測を再生成 ✨";
@@ -1089,7 +1123,7 @@ ${summaryText}
         if (expectedPages === total) return;
         expectedPages = total;
         receivedPayloads = new Array(total).fill(null);
-        blocksEl.innerHTML = "";
+        blocksEl.replaceChildren();
         for (let i = 0; i < total; i++) {
           let b = document.createElement("div");
           b.className = "block";
@@ -1116,35 +1150,11 @@ ${summaryText}
         scanLine.style.boxShadow = `0 0 20px ${color}`;
       }
 
-      // Canvasのサイズ計算結果をキャッシュして、毎フレームの再計算とDOM代入を防ぐ（パフォーマンス最適化）
-      let cachedVideoWidth = 0;
-      let cachedVideoHeight = 0;
-      let cachedCanvasWidth = 0;
-      let cachedCanvasHeight = 0;
-
       function tick() {
         if (!scanning) return;
         if (video.readyState === video.HAVE_ENOUGH_DATA && !isComplete) {
-          // ビデオのサイズが変わった時のみ計算を実行
-          if (
-            video.videoWidth !== cachedVideoWidth ||
-            video.videoHeight !== cachedVideoHeight
-          ) {
-            cachedVideoWidth = video.videoWidth;
-            cachedVideoHeight = video.videoHeight;
-            cachedCanvasWidth = Math.min(cachedVideoWidth, 600);
-            // 浮動小数点による再代入ループを防ぐため、高さを整数化
-            cachedCanvasHeight = Math.floor(
-              cachedCanvasWidth * (cachedVideoHeight / cachedVideoWidth),
-            );
-          }
-
-          // 実際のCanvas要素への代入は値が変更された時のみ実行（コンテキストリセット回避）
-          if (canvas.width !== cachedCanvasWidth)
-            canvas.width = cachedCanvasWidth;
-          if (canvas.height !== cachedCanvasHeight)
-            canvas.height = cachedCanvasHeight;
-
+          canvas.width = Math.min(video.videoWidth, 600);
+          canvas.height = canvas.width * (video.videoHeight / video.videoWidth);
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
           let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -1256,7 +1266,11 @@ ${summaryText}
         chartContainer.style.display = "block";
 
         const dlWrapper = document.getElementById("dl-btn-wrapper");
-        dlWrapper.innerHTML = `<button id="btn-dl">💾 CSVをダウンロード</button>`;
+        dlWrapper.replaceChildren();
+        const btnDl = document.createElement("button");
+        btnDl.id = "btn-dl";
+        btnDl.textContent = "💾 CSVをダウンロード";
+        dlWrapper.appendChild(btnDl);
 
         btnAiAdvice.style.display = "block";
 
@@ -1264,13 +1278,22 @@ ${summaryText}
           const legend = document.createElement("div");
           legend.id = "di-legend";
           legend.className = "di-legend";
-          legend.innerHTML = `
-          <div class="di-legend-item"><div class="di-box danger"></div>危険</div>
-          <div class="di-legend-item"><div class="di-box alert"></div>警戒</div>
-          <div class="di-legend-item"><div class="di-box warn"></div>やや暑</div>
-          <div class="di-legend-item"><div class="di-box comfort"></div>快適</div>
-          <div class="di-legend-item"><div class="di-box cold"></div>寒い</div>
-        `;
+          const items = [
+            { type: "danger", text: "危険" },
+            { type: "alert", text: "警戒" },
+            { type: "warn", text: "やや暑" },
+            { type: "comfort", text: "快適" },
+            { type: "cold", text: "寒い" },
+          ];
+          items.forEach((item) => {
+            const itemDiv = document.createElement("div");
+            itemDiv.className = "di-legend-item";
+            const boxDiv = document.createElement("div");
+            boxDiv.className = `di-box ${item.type}`;
+            itemDiv.appendChild(boxDiv);
+            itemDiv.appendChild(document.createTextNode(item.text));
+            legend.appendChild(itemDiv);
+          });
           chartContainer.appendChild(legend);
         }
 
@@ -1291,20 +1314,41 @@ ${summaryText}
         if (!summaryEl) {
           summaryEl = document.createElement("div");
           summaryEl.id = "di-summary";
-          summaryEl.innerHTML = `
-          <table class="di-summary-table">
-            <tr>
-              <th>暑い・危険 (DI≧75)</th>
-              <th>快 適 (55≦DI＜75)</th>
-              <th>寒い (DI＜55)</th>
-            </tr>
-            <tr>
-              <td id="di-summary-hot" style="color: #fca5a5">- %</td>
-              <td id="di-summary-comfort" style="color: #6ee7b7">- %</td>
-              <td id="di-summary-cold" style="color: #93c5fd">- %</td>
-            </tr>
-          </table>
-        `;
+          const table = document.createElement("table");
+          table.className = "di-summary-table";
+
+          const trHead = document.createElement("tr");
+          ["暑い・危険 (DI≧75)", "快 適 (55≦DI＜75)", "寒い (DI＜55)"].forEach(
+            (txt) => {
+              const th = document.createElement("th");
+              th.textContent = txt;
+              trHead.appendChild(th);
+            },
+          );
+          table.appendChild(trHead);
+
+          const trBody = document.createElement("tr");
+
+          const tdHot = document.createElement("td");
+          tdHot.id = "di-summary-hot";
+          tdHot.style.color = "#fca5a5";
+          tdHot.textContent = "- %";
+          trBody.appendChild(tdHot);
+
+          const tdComfort = document.createElement("td");
+          tdComfort.id = "di-summary-comfort";
+          tdComfort.style.color = "#6ee7b7";
+          tdComfort.textContent = "- %";
+          trBody.appendChild(tdComfort);
+
+          const tdCold = document.createElement("td");
+          tdCold.id = "di-summary-cold";
+          tdCold.style.color = "#93c5fd";
+          tdCold.textContent = "- %";
+          trBody.appendChild(tdCold);
+
+          table.appendChild(trBody);
+          summaryEl.appendChild(table);
           chartContainer.appendChild(summaryEl);
         }
 
