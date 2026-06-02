@@ -548,19 +548,6 @@
       const BLE_CHAR_RX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
       const BLE_CHAR_TX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a9";
 
-      // XSS対策として安全にテキストと改行を追加するヘルパー
-      function setSafeHTML(element, text) {
-        element.replaceChildren();
-        if (!text) return;
-        const parts = text.split(/\\n|\n/);
-        parts.forEach((part, index) => {
-          element.appendChild(document.createTextNode(part));
-          if (index < parts.length - 1) {
-            element.appendChild(document.createElement("br"));
-          }
-        });
-      }
-
       // Viewの切り替え管理関数
       function switchView(phase) {
         document.getElementById("phase-setup").style.display =
