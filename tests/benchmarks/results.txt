@@ -1,9 +1,0 @@
-Running benchmark on OPTIMIZED code...
-Optimized Result: 4.20 ms for 1000 iterations.
-Canvas width/height setter calls: 2
-
-Running benchmark on UNOPTIMIZED code...
-Unoptimized Result: 7.00 ms for 1000 iterations.
-Canvas width/height setter calls: 2000
-
-Performance Improvement: 40.00% faster
