@@ -1153,8 +1153,16 @@ ${summaryText}
       function tick() {
         if (!scanning) return;
         if (video.readyState === video.HAVE_ENOUGH_DATA && !isComplete) {
-          canvas.width = Math.min(video.videoWidth, 600);
-          canvas.height = canvas.width * (video.videoHeight / video.videoWidth);
+          const targetW = Math.min(video.videoWidth, 600);
+          const targetH = Math.floor(
+            targetW * (video.videoHeight / video.videoWidth),
+          );
+
+          // ⚡ Bolt: Only reassign canvas dimensions if they actually changed.
+          // Unconditional reassignment forces costly browser reallocations and context clears.
+          if (canvas.width !== targetW) canvas.width = targetW;
+          if (canvas.height !== targetH) canvas.height = targetH;
+
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
           let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
