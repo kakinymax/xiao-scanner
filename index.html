@@ -1150,11 +1150,31 @@ ${summaryText}
         scanLine.style.boxShadow = `0 0 20px ${color}`;
       }
 
+      let cachedVideoWidth = 0;
+      let cachedVideoHeight = 0;
+      let cachedCanvasWidth = 0;
+      let cachedCanvasHeight = 0;
+
       function tick() {
         if (!scanning) return;
         if (video.readyState === video.HAVE_ENOUGH_DATA && !isComplete) {
-          canvas.width = Math.min(video.videoWidth, 600);
-          canvas.height = canvas.width * (video.videoHeight / video.videoWidth);
+          if (
+            video.videoWidth !== cachedVideoWidth ||
+            video.videoHeight !== cachedVideoHeight
+          ) {
+            cachedVideoWidth = video.videoWidth;
+            cachedVideoHeight = video.videoHeight;
+            cachedCanvasWidth = Math.min(cachedVideoWidth, 600);
+            cachedCanvasHeight = Math.floor(
+              cachedCanvasWidth * (cachedVideoHeight / cachedVideoWidth),
+            );
+          }
+
+          if (canvas.width !== cachedCanvasWidth)
+            canvas.width = cachedCanvasWidth;
+          if (canvas.height !== cachedCanvasHeight)
+            canvas.height = cachedCanvasHeight;
+
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
           let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
