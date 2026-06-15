@@ -548,6 +548,21 @@
       const BLE_CHAR_RX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
       const BLE_CHAR_TX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a9";
 
+      // 外部からのテキストを安全にDOMに挿入する関数 (XSS対策)
+      function setSafeHTML(element, text) {
+        if (text === null || text === undefined) {
+          text = "";
+        }
+        element.replaceChildren();
+        const lines = String(text).split("\n");
+        lines.forEach((line, index) => {
+          element.appendChild(document.createTextNode(line));
+          if (index < lines.length - 1) {
+            element.appendChild(document.createElement("br"));
+          }
+        });
+      }
+
       // Viewの切り替え管理関数
       function switchView(phase) {
         document.getElementById("phase-setup").style.display =
