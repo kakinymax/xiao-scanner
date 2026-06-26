@@ -510,6 +510,22 @@
     </div>
 
     <script>
+      /**
+       * Safely injects text containing line breaks into a DOM element.
+       * Prevents XSS by using createTextNode instead of innerHTML.
+       */
+      function setSafeHTML(element, text) {
+        if (text == null) text = "";
+        element.replaceChildren();
+        const lines = String(text).split("\n");
+        lines.forEach((line, index) => {
+          element.appendChild(document.createTextNode(line));
+          if (index < lines.length - 1) {
+            element.appendChild(document.createElement("br"));
+          }
+        });
+      }
+
       const video = document.getElementById("video");
       const canvas = document.getElementById("canvas");
       const ctx = canvas.getContext("2d", { willReadFrequently: true });
