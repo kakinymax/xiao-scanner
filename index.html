@@ -510,6 +510,20 @@
     </div>
 
     <script>
+      // XSS対策用：安全に複数行テキストをDOMに挿入する関数
+      function setSafeHTML(element, text) {
+        if (!element) return;
+        const safeText = text || "";
+        element.replaceChildren();
+        const lines = safeText.split("\n");
+        lines.forEach((line, index) => {
+          element.appendChild(document.createTextNode(line));
+          if (index < lines.length - 1) {
+            element.appendChild(document.createElement("br"));
+          }
+        });
+      }
+
       const video = document.getElementById("video");
       const canvas = document.getElementById("canvas");
       const ctx = canvas.getContext("2d", { willReadFrequently: true });
