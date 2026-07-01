@@ -46,3 +46,8 @@
  **Vulnerability:** Unsafe `.innerHTML` assignments using external responses (like AI content) and error messages.
  **Learning:** Direct `.innerHTML` assignments with untrusted payload allows arbitrary JavaScript execution leading to Cross-Site Scripting (XSS).
  **Prevention:** Use safe DOM manipulation strategies such as `.replaceChildren()`, `document.createElement()`, and `.textContent` for updating contents defensively in UI elements.
+
+## 2025-02-28 - [Title] Fix Missing setSafeHTML Definition
+ **Vulnerability:** Unsafe DOM assignments potential. The code was using `setSafeHTML` which was missing from the source. In future refactoring or bug fixes without it defined, developers might default to using `innerHTML`.
+ **Learning:** Missing critical security sanitization utility functions in the codebase not only breaks functionality but also introduces a risk of developers introducing vulnerabilities if they fall back to unsafe methods.
+ **Prevention:** Ensure all sanitization functions like `setSafeHTML` are properly defined, tested, and made available globally or locally wherever dynamic text injection occurs.
