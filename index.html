@@ -1150,11 +1150,32 @@ ${summaryText}
         scanLine.style.boxShadow = `0 0 20px ${color}`;
       }
 
+      // キャッシュ変数: Canvasのリサイズを最小限に抑えるため
+      let lastVideoWidth = 0;
+      let lastVideoHeight = 0;
+
       function tick() {
         if (!scanning) return;
         if (video.readyState === video.HAVE_ENOUGH_DATA && !isComplete) {
-          canvas.width = Math.min(video.videoWidth, 600);
-          canvas.height = canvas.width * (video.videoHeight / video.videoWidth);
+          // ⚡ Bolt: Canvas再割り当ての最適化
+          // videoWidth / videoHeight が変更された場合のみ canvas サイズを再設定し、
+          // 毎回発生する高コストな backing store の再割り当てと context リセットを防ぐ。
+          // 浮動小数点誤差を防ぐため Math.floor で整数化。
+          if (
+            video.videoWidth !== lastVideoWidth ||
+            video.videoHeight !== lastVideoHeight
+          ) {
+            lastVideoWidth = video.videoWidth;
+            lastVideoHeight = video.videoHeight;
+            let targetWidth = Math.floor(Math.min(video.videoWidth, 600));
+            let targetHeight = Math.floor(
+              targetWidth * (video.videoHeight / video.videoWidth),
+            );
+
+            if (canvas.width !== targetWidth) canvas.width = targetWidth;
+            if (canvas.height !== targetHeight) canvas.height = targetHeight;
+          }
+
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
           let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
