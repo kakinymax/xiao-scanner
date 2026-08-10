@@ -46,3 +46,8 @@
  **Vulnerability:** Unsafe `.innerHTML` assignments using external responses (like AI content) and error messages.
  **Learning:** Direct `.innerHTML` assignments with untrusted payload allows arbitrary JavaScript execution leading to Cross-Site Scripting (XSS).
  **Prevention:** Use safe DOM manipulation strategies such as `.replaceChildren()`, `document.createElement()`, and `.textContent` for updating contents defensively in UI elements.
+
+## 2025-02-28 - [Title] Fix XSS Vulnerability in UI Updates
+ **Vulnerability:** Unsafe `.innerHTML` assignments using external responses (like AI content) and error messages.
+ **Learning:** Direct `.innerHTML` assignments with untrusted payload allows arbitrary JavaScript execution leading to Cross-Site Scripting (XSS).
+ **Prevention:** Use safe DOM manipulation strategies such as `.replaceChildren()`, `document.createElement()`, and `.textContent` for updating contents defensively in UI elements. Or use an escaping function for innerHTML.
