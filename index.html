@@ -510,6 +510,20 @@
     </div>
 
     <script>
+      function setSafeHTML(element, text) {
+        if (text === null || text === undefined) {
+          text = "";
+        }
+        element.replaceChildren();
+        const lines = String(text).split("\n");
+        for (let i = 0; i < lines.length; i++) {
+          element.appendChild(document.createTextNode(lines[i]));
+          if (i < lines.length - 1) {
+            element.appendChild(document.createElement("br"));
+          }
+        }
+      }
+
       const video = document.getElementById("video");
       const canvas = document.getElementById("canvas");
       const ctx = canvas.getContext("2d", { willReadFrequently: true });
