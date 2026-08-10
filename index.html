@@ -510,6 +510,21 @@
     </div>
 
     <script>
+      // 外部からのテキストを安全にDOMに挿入するための関数
+      function setSafeHTML(element, text) {
+        element.replaceChildren();
+        if (!text) return;
+        const lines = text.split(/\r\n|\r|\n/);
+        lines.forEach((line, index) => {
+          if (line.length > 0) {
+            element.appendChild(document.createTextNode(line));
+          }
+          if (index < lines.length - 1) {
+            element.appendChild(document.createElement("br"));
+          }
+        });
+      }
+
       const video = document.getElementById("video");
       const canvas = document.getElementById("canvas");
       const ctx = canvas.getContext("2d", { willReadFrequently: true });
