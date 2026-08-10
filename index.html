@@ -510,6 +510,18 @@
     </div>
 
     <script>
+      function setSafeHTML(element, text) {
+        const safeText = text == null ? "" : String(text);
+        element.replaceChildren();
+        const lines = safeText.split("\n");
+        lines.forEach((line, index) => {
+          if (index > 0) {
+            element.appendChild(document.createElement("br"));
+          }
+          element.appendChild(document.createTextNode(line));
+        });
+      }
+
       const video = document.getElementById("video");
       const canvas = document.getElementById("canvas");
       const ctx = canvas.getContext("2d", { willReadFrequently: true });
