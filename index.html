@@ -543,6 +543,21 @@
       let bleTxChar = null;
       let bleRxChar = null;
 
+      // XSS対策用のテキスト安全挿入関数
+      function setSafeHTML(element, text) {
+        if (text === null || text === undefined) {
+          text = "";
+        }
+        element.replaceChildren();
+        const lines = String(text).split("\n");
+        lines.forEach((line, index) => {
+          element.appendChild(document.createTextNode(line));
+          if (index < lines.length - 1) {
+            element.appendChild(document.createElement("br"));
+          }
+        });
+      }
+
       // BLE 接続用の設定定数 (重複を排除)
       const BLE_SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
       const BLE_CHAR_RX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
