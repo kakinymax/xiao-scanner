@@ -2,7 +2,7 @@
 
 2026-10-03の整理前に105本を取得。main以外の104本は全てPRに対応し、独自コミットと参照をGit bundleへ保全済み。削除直前に全104本のSHAが保全時点と一致することを確認し、GitHub画面で全て削除した。各操作後のRestore表示と、整理後のgit ls-remoteで旧ブランチが残っていないことを確認した。
 
-整理直後のGitHubブランチはmainとcodex/migrate-developmentの2本。移行用ブランチは共同確認の完了まで維持する。以後の作業ブランチは対応するPRの完了後に整理する。mainの履歴は書き換えていない。GitHub上の復元機能に加え、整理前bundleから台帳のSHAを復元できる。
+整理直後のGitHubブランチはmainとcodex/migrate-developmentの2本だった。2026-10-04の移行完了に合わせ、保全済みのcodex/migrate-development（536e978e4be31d74d5d67ee61a33a26a3b3b14e4、PR #108統合済み）も削除し、Restore表示を確認した。以後の作業ブランチは対応するPRの完了後に整理する。mainの履歴は書き換えていない。GitHub上の復元機能に加え、整理前bundleとローカルの保全参照から復元できる。
 
 | ブランチ | 整理前SHA | PR | 扱い |
 |---|---|---|---|
