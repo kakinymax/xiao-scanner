@@ -8,7 +8,9 @@ XIAO ESP32C3で温度・湿度・不快指数を記録し、QR/BLEでブラウ�
 2. [HANDOVER.md](HANDOVER.md)、[ISSUES.md](ISSUES.md)、[移行状況](docs/migration/STATUS.md)を読む。
 3. [開発手順](docs/DEVELOPMENT.md)に従って依存関係とテストを確認し、作業ブランチで修正する。
 
-共同対応でJulesの温度計への書き込みアクセスを解除し、Codex連携への追加・保存と移行ブランチ作成を確認した。コード反映と旧PR・ブランチ整理を進めている。旧セッションの整理、Codex登録、Mac・実機確認が残る。完全移行済みとは扱わない。[共同対応票](docs/migration/JOINT_ACTIONS.md)の手順で進める。
+移行PR [#108](https://github.com/kakinymax/xiao-scanner/pull/108)をmainへ反映し、Codexの作業コピーとの一致を確認した。旧PR59件と旧ブランチ104本は、履歴を保全して整理済み。
+
+Julesの温度計への書き込みアクセスを解除し、確認待ち12件を停止、旧セッション93件をアーカイブへ整理した。完全移行にはCodex登録、旧端末、実機、Julesの未公開差分とCI Fixerの最終確認が残る。[共同対応票](docs/migration/JOINT_ACTIONS.md)に沿って進める。
 
 ## 編集対象
 
@@ -37,6 +39,8 @@ XIAO ESP32C3で温度・湿度・不快指数を記録し、QR/BLEでブラウ�
 - 全107 PR・105ブランチの整理前履歴を保全し、復元を検証。
 - Driveの二つの作業コピーと未反映差分を保全。
 - AI応答を表示するsetSafeHTMLの未定義を、PR #104由来の最小実装で補い、文字列をHTMLとして実行しない回帰確認を追加。
-- Codex向けの作業指示と開発手順を整備。
+- Codex向けの作業指示と開発手順を整備し、移行PR #108をmainへ反映。
+- 旧open PR 59件、旧作業ブランチ104本を保全後に整理。
+- Julesの書き込みアクセス解除、旧確認待ちタスクの停止とアーカイブ。
 
 [移行前の更新履歴](docs/history/README-before-migration.md)も保持している。

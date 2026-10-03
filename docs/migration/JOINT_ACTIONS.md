@@ -1,35 +1,28 @@
 # 共同対応票
 
-2026-10-03。自力で実施可能な工程を完了し、共同対応中。ユーザーがPRを一つずつ比較する必要はない。認証・接続後のコード反映とPR/ブランチ整理は引き続きCodexが担当する。
+2026-10-03。自力で実施可能な工程を完了し、共同対応中。ユーザーがPRを一つずつ比較する必要はない。GitHubの反映と整理は完了。残る登録・端末・実機・未公開差分の共同確認を進める。
 
-## 1. 以前のJules実行元を停止する
+## 1. Julesの停止と残る履歴確認
 
-対象: https://jules.google.com/ と https://github.com/settings/installations
+対象: https://jules.google.com/u/1/repo/github/kakinymax/xiao-scanner/overview
 
-ユーザーのサインイン後、アプリ内ブラウザで温度計の履歴を持つJulesアカウントとGitHubのkakinymaxアカウントを確認した。Julesでxiao-scannerを選択したScheduled一覧は「No scheduled tasks yet」。全セッションの停止確認はまだ終わっていない。
+完了: GitHubのGoogle Labs Jules設定から温度計を除外し、他の既存2件だけを残した状態を確認した。温度計への書き込みアクセスは解除済み。Scheduled一覧は「No scheduled tasks yet」。確認待ち12件はPausedにし、レビュー待ち81件と合わせて93件をArchivedへ整理した。履歴の永久削除はしていない。
 
-Google Labs JulesのGitHub App（installation 133726235）はAll repositoriesだった。温度計を除外して他の既存2件を残す選択内容を準備したが、Saveと状態取得が自動承認レビューに拒否された。その後ユーザーが保存し、CodexがGitHub設定を読み直してOnly select repositoriesと他2件だけが残る状態を確認した。xiao-scannerへのJulesの書き込みアクセスは解除済み。この方式では今後作るリポジトリも自動追加されない。
+未確認: Julesにだけ残る未公開作業差分の完全な取得。詳細を確認した旧セッションではRead-only・1か月以上経過のロック表示があり、CodexからDownload zipを押したがダウンロード完了を確認できなかった。GitHubに公開済みの全PR・ブランチは保全済みだが、この事実で未公開内容も取得済みとはしない。
 
-ユーザーは以前利用したGoogle/GitHubアカウントでサインインする。対象をkakinymax/xiao-scannerに絞り、実行中タスク・継続/定期タスクを停止し、JulesのGitHub連携からこのリポジトリを外す。Antigravityやローカル側でこのプロジェクトを起動する定期処理がある場合も停止する。他のプロジェクトの設定は変更しない。
+共同操作: 上記URLのArchivedから該当セッションを開き、変更ファイルとDownload zipを確認する。取得できたZIP/差分をCodexの保全フォルダへ置き、Codexが既存107 PRの差分と比較する。独自変更は保管資料と後続課題へ結び付け、未検証の変更をmainへ丸ごと取り込まない。アーカイブ済み履歴を削除しない。
 
-Codexと確認すること: 対象の実行中/定期タスクがないこと、対象リポジトリへの連携が外れたこと。旧アカウントにアクセスできない場合はGitHub側の対象アクセス解除も確認する。.jules資料の移動だけでは停止済みにならない。
+CI Fixer確認先: https://jules.google.com/u/1/repo/github/kakinymax/xiao-scanner/ci-fixer
 
-## 2. GitHubの温度計リポジトリへの許可と認証
+保存済み表示は有効だがチェックボックスがdisabledで操作できず、CI apps一覧は「No CI apps detected yet」。GitHubの書き込み権限は解除済みだが、設定値の無効化は未実施として残す。共同操作で無効化できるか確認し、権限を戻す必要がある場合は新しい作業が再開するため先にCodexと判断する。
 
-対象: https://github.com/settings/installations/167109775
+## 2. GitHub許可・反映・整理（完了）
 
-当初は温度計が許可対象になく、ブランチ作成とPRクローズが403で拒否された。共同対応で、ユーザーが保存直前に承認した内容に従ってCodexがChatGPT Codex Connector（installation 167109775）へxiao-scannerを追加・保存。成功メッセージ、コネクターの許可対象一覧、移行ブランチcodex/migrate-developmentの作成成功を確認した。コード反映と旧PR・ブランチ整理を続ける。
+ChatGPT Codex Connector（installation 167109775）へ、ユーザーが保存直前に承認した内容でxiao-scannerを追加・保存した。成功画面と許可対象一覧、ブランチ作成と実際の書き込みを確認した。
 
-今回のコード反映は認証済みコネクターを使う。端末Gitでpushする場合には別途認証が必要だが、通常のGitHub閲覧用ログインやコネクターの許可とは別である。ブランチ整理は認証済みGitHub画面で可能な操作から進める。認証トークンをチャットや文書に貼らない。
+移行PR [#108](https://github.com/kakinymax/xiao-scanner/pull/108)をmainへ統合。反映コミットはb95919022d6acceef45c79022db6fc05fd1c6fe1。旧open PR 59件は全件クローズし、旧ブランチ104本はSHAと保全を照合して削除した。整理直後のopen PRは0件、ブランチはmainとcodex/migrate-developmentのみ。後者は共同確認完了まで保持する。
 
-後日、端末Gitのpushも使う場合はGit Credential Managerで認証する。今回のコネクター反映に追加トークンを転記する必要はない。
-
-```powershell
-$env:GIT_EXEC_PATH = 'C:\Users\pc\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\git\mingw64\bin'
-git credential-manager github login
-```
-
-許可・認証後はCodexが最新mainと差分を照合し、移行ブランチを反映・レビュー可能にまとめてmainへ統合する。その後、全PR台帳に従って59件の旧open PRを整理し、全ブランチ台帳の104本を、保全とSHAの再確認後に整理する。数字は整理前の基準で、新しい変更があれば再照合する。
+GitHub mainとCodexの作業コピーは一致している。追加変更の反映は作業ブランチとPRを使う。認証済みコネクターで反映できるため、今回の移行に認証トークンの転記や端末Gitのpush認証は必要ない。端末Gitのpushを後日使う場合だけGit Credential Managerで設定する。
 
 ## 3. Codexのプロジェクト登録
 
