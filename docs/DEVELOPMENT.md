@@ -41,7 +41,7 @@ $env:ARDUINO_DIRECTORIES_DATA = 'C:\Users\pc\Documents\Codex\mcu'
 & $arduinoCli --config-file $cliConfig compile --fqbn esp32:esp32:XIAO_ESP32C3 --build-path build/collector mcu_firmware/xiao_env_ai_collector
 ```
 
-compileは実機に書き込まない。実機に書き込まれている版はまだ不明で、LittleFSに保存された学習ログもある可能性がある。書き込み・領域変更・消去は共同対応で版とログ保全を確認してから実施する。
+compileは実機に書き込まない。現在の実機の版と接続確認は、2026-10-04のユーザー指示により移行の必須条件から外した。今後のコード変更・書き込み時に対象スケッチと接続を確認する。LittleFSのログが必要な場合は、領域変更・消去前に保全する。
 
 ## Git
 
