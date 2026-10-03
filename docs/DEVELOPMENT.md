@@ -8,6 +8,14 @@
 
 製品コードを変更する前に[ヒストリー](PROJECT_HISTORY.md)と[設計判断](DECISIONS.md)を読み、目的・理由・検討した代替案・未確認点を記録する。実装後にテスト/実機確認結果・限界・PR/SHAを追記する。就活などで説明できる出来事は[説明用メモ](PORTFOLIO.md)へ反映し、本人の判断とAIによる実装・解析を区別する。自動化は新設せず、通常の作業手順として更新する。
 
+## Wi-Fi・Discord版
+
+現在の対象はmcu_firmware/xiao_env_wifi_discord/。製品の設定値と操作は[使い方](WIFI_DISCORD.md)、再実行するコマンドと確認範囲は[検証記録](WIFI_DISCORD_VALIDATION.md)を参照。新しいファームウェアを変更したら、このスケッチをXIAO_ESP32C3へコンパイルし、通知・履歴・設定の変更はtests/firmware/core_test.cppで同じC++処理を確認する。tools/setup_temperature.pyの変更はPython標準unittestを使う。既存NodeとZigによるWASI実行を用意してあり、新たなテストフレームワークやCI自動化を追加しない。
+
+このPCには作業用tools/temperature/python-libsへpyserial 3.5を準備した。PC設定ツールはtools/setup_temperature.ps1から開く。別環境ではPythonに`python -m pip install pyserial==3.5`を実行して用意する。秘密値は対話入力で本体へ保存し、設定ファイルやコマンド引数へ書かない。
+
+実機の切替・実受信・通信断・再起動の確認は[共同対応票](WIFI_DISCORD_JOINT_ACTIONS.md)に従う。旧基準の4MBに加え、切替直前までに増えたデータを保全する。新しい保存名前空間はthermo_cfg/thermo_hist、履歴は版・日時・温湿度・区切り・CRC付きで、旧UI/AI領域を初期化しない。別スケッチのUSB CDCは既定Enabledのまま使い、コンパイル結果だけで実機書き込みを成功と記録しない。
+
 ## WebとPython
 
 確認済みの実行環境はNode.js 24.19.0、npm 12.2.0、Python 3.12.14。Webテストの依存関係はpackage-lock.jsonに固定する。
