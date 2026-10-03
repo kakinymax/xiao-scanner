@@ -1,6 +1,10 @@
 # xiao-scanner — XIAO温度計
 
-XIAO ESP32C3で温度・湿度・不快指数を記録し、QR/BLEでブラウザへ渡す環境モニター。今後の開発窓口はCodex、共有するソースと履歴の基準はGitHub main。
+保存中の旧版は、XIAO ESP32C3で温度・湿度・不快指数を記録し、QR/BLEでブラウザへ渡す環境モニター。開発窓口はCodex、共有するソースと履歴の基準はGitHub main。
+
+2026-10-04に、常時給電で温湿度・履歴・ブザーを残し、Wi-FiからDiscordへ通知する[新版の方針](docs/REDESIGN.md)を決定。Webスキャナー・QR/BLE・不快指数・AI予測/学習ログは新版から廃止する。現在はコード変更前の記録・仕様確定段階。
+
+[プロジェクトのヒストリー](docs/PROJECT_HISTORY.md)で構想・変更・失敗とコードの対応を追える。[設計判断](docs/DECISIONS.md)、[説明用メモ](docs/PORTFOLIO.md)、[履歴の根拠](docs/history/antigravity-history-evidence.md)も参照する。
 
 ## 開発を再開する
 

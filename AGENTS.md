@@ -7,6 +7,7 @@
 - HANDOVER.md、ISSUES.md、docs/migration/STATUS.md、docs/DEVELOPMENT.mdを読む。
 - Gitの現在ブランチ、未コミット変更、origin/mainとの差分を確認する。既存のユーザー変更を上書きしない。
 - 一課題につき一作業ブランチを使い、変更理由と確認結果を記録する。
+- 製品コードを変更する前にdocs/PROJECT_HISTORY.md、docs/DECISIONS.md、docs/REDESIGN.mdを確認する。目的・変更理由・機能の追加/廃止判断をDECISIONS.mdへ先に記録し、実装後に検証結果・PR・SHAを追記する。説明に使える経緯はPROJECT_HISTORY.mdとdocs/PORTFOLIO.mdへ反映する。
 
 ## 検証と反映
 
