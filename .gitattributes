@@ -1,0 +1,3 @@
+# Preserve the byte-for-byte Antigravity working copies for comparison.
+archives/antigravity-2026-05-21/index.html -text
+archives/antigravity-2026-05-21/parse_bin.py -text

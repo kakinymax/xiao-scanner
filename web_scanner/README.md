@@ -1,29 +1,9 @@
-# XIAO ENV Data Scanner
+# Webスキャナーの配置
 
-このプロジェクトは、Seeed Studio XIAO ESP32C3 などのマイコンから送信される環境データをデコードし、グラフ化するためのWebアプリケーションです。
+現行Webアプリはリポジトリ直下の **index.html**。GitHub Pagesとローカル確認も同じファイルを使う。このフォルダのarchive/は過去版の保管場所。
 
-## 機能
-- **QRコードデコード**: アニメーションQRコード（バイナリ断片）を読み取り、データを復元します。
-- **Web Bluetooth (BLE) 同期**: BLE経由でリアルタイムにデータを取得し、時刻同期を行います。
-- **データ可視化**: Chart.js を使用して、温度・湿度の推移をグラフ表示します。
-- **不快指数 (DI) 分析**: グラフの背景色でその時の快適度を視覚化します。
-- **CSVダウンロード**: 解析したデータをCSV形式で保存できます。
-- **AIアドバイス**: 右上の設定（⚙️）から Gemini API キーを設定することで、最新の環境データに基づいた健康アドバイスを受けられます。キーはブラウザの `localStorage` にのみ保存されるため、安全です。
+機能はQRデコード、BLE同期、温湿度・不快指数のグラフ、CSV保存、Gemini APIによるアドバイス。実際の接続・通信の検証状況はdocs/migration/STATUS.mdとISSUES.mdで確認する。
 
-## GitHub での実装・公開方法
-このリポジトリを GitHub Pages で公開することで、スマートフォンから簡単にアクセスできるようになります。
+開発はCodexで行い、README.md、HANDOVER.md、docs/DEVELOPMENT.mdの手順を使う。Driveのweb_scanner/index.html作業版はarchives/antigravity-2026-05-21へ保存してあり、現行版とは区別する。
 
-1.  **GitHub リポジトリの作成**: GitHub に新しいリポジトリを作成します。
-2.  **ファイルの移動**: `index.html` をリポジトリのルートに配置してください。
-3.  **GitHub Pages の有効化**:
-    - リポジトリの `Settings` > `Pages` に移動します。
-    - `Branch` を `main` (または `master`) に設定し、`Save` をクリックします。
-    - 数分後、提供された URL（`https://[ユーザー名].github.io/[リポジトリ名]/`）でアプリがアクセス可能になります。
-
-## 使用上の注意
-- **HTTPS必須**: カメラ機能（jsQR）および Web Bluetooth API は、セキュリティ上の制限から **HTTPS 環境でのみ** 動作します。GitHub Pages は標準で HTTPS に対応しているため、推奨される公開方法です。
-- **APIキーの設定**: アプリ画面右上の「⚙️」ボタンから、ご自身の Gemini API キーを入力・保存してください。一度保存すると、次回以降も自動的に読み込まれます。
-
-## ライブラリ
-- [jsQR](https://github.com/cozmo/jsQR)
-- [Chart.js](https://www.chartjs.org/)
+現行APIキー保存先はブラウザlocalStorage。キーをリポジトリやログへ記録しない。保存方法と画面の説明の見直しはISSUES.mdに残る。
