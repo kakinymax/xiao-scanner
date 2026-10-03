@@ -2,7 +2,9 @@
 
 2026-10-03の整理前は107 PR、うち59件がopen。固有コミットはGit bundleとPR別patchへ保全済み。mainの履歴を変更しない。
 
-新しい移行用PRは別途記録する。以下の処理状態は実操作後に更新する。
+旧open PR 59件は、保存したhead SHAとの一致を実施直前に確認して全件クローズした。整理直後のopen PRは0件。PRの議論・履歴と固有差分は保持している。
+
+移行PR [#108](https://github.com/kakinymax/xiao-scanner/pull/108)をmainへマージ済み。反映コミットはb95919022d6acceef45c79022db6fc05fd1c6fe1。この台帳は整理前107件を対象とする。
 
 | PR | 整理前 | SHA | 判断・扱い | 処理状態 |
 |---|---|---|---|---|
@@ -52,64 +54,64 @@
 | [#44](https://github.com/kakinymax/xiao-scanner/pull/44) | closed | 3458451b81c8 | 以前にクローズ済み。固有コミットと差分を保全し、旧作業ブランチを整理対象にする。 | 既存状態を維持 |
 | [#45](https://github.com/kakinymax/xiao-scanner/pull/45) | closed | 9023e17bd600 | 以前にクローズ済み。固有コミットと差分を保全し、旧作業ブランチを整理対象にする。 | 既存状態を維持 |
 | [#46](https://github.com/kakinymax/xiao-scanner/pull/46) | merged | bbfb043876bb | 以前にマージ済み。履歴を保全し、旧作業ブランチを整理対象にする。 | 既存状態を維持 |
-| [#47](https://github.com/kakinymax/xiao-scanner/pull/47) | open | c4cd05b1f338 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#48](https://github.com/kakinymax/xiao-scanner/pull/48) | open | 82481ee7e3e3 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#49](https://github.com/kakinymax/xiao-scanner/pull/49) | open | f8d4e07546f4 | 三件は同じ製品patch-id。sprintf置換の残りを含む。固有差分を保存し、ISSUESの後続修正へ集約して閉じる。 | 保全済み・整理待ち |
-| [#50](https://github.com/kakinymax/xiao-scanner/pull/50) | open | ddcb2cc2eb35 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#51](https://github.com/kakinymax/xiao-scanner/pull/51) | open | badeaf6e0b2d | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#52](https://github.com/kakinymax/xiao-scanner/pull/52) | open | 27ff3a44c66a | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 保全済み・整理待ち |
-| [#53](https://github.com/kakinymax/xiao-scanner/pull/53) | open | 17d72f1542dd | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#54](https://github.com/kakinymax/xiao-scanner/pull/54) | open | fde31faf8c70 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 保全済み・整理待ち |
-| [#55](https://github.com/kakinymax/xiao-scanner/pull/55) | open | 81f67805b664 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#56](https://github.com/kakinymax/xiao-scanner/pull/56) | open | dd9b72b68e74 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#57](https://github.com/kakinymax/xiao-scanner/pull/57) | open | 21a017e2dbed | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 保全済み・整理待ち |
-| [#58](https://github.com/kakinymax/xiao-scanner/pull/58) | open | 9af77e017566 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#59](https://github.com/kakinymax/xiao-scanner/pull/59) | open | ebf4bd32b497 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 保全済み・整理待ち |
-| [#60](https://github.com/kakinymax/xiao-scanner/pull/60) | open | 206bbcc33bcb | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#61](https://github.com/kakinymax/xiao-scanner/pull/61) | open | c7a6daf072e2 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 保全済み・整理待ち |
-| [#62](https://github.com/kakinymax/xiao-scanner/pull/62) | open | 995e66993d11 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#63](https://github.com/kakinymax/xiao-scanner/pull/63) | open | 73f800683f78 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#64](https://github.com/kakinymax/xiao-scanner/pull/64) | open | 27173d1cafc0 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#65](https://github.com/kakinymax/xiao-scanner/pull/65) | open | 3a5b7570f9c9 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#66](https://github.com/kakinymax/xiao-scanner/pull/66) | open | 113fc8b5b94e | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 保全済み・整理待ち |
-| [#67](https://github.com/kakinymax/xiao-scanner/pull/67) | open | ee9afeb720e2 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#68](https://github.com/kakinymax/xiao-scanner/pull/68) | open | 2aa768f4fd9f | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#69](https://github.com/kakinymax/xiao-scanner/pull/69) | open | 0fd6f8e66be9 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 保全済み・整理待ち |
-| [#70](https://github.com/kakinymax/xiao-scanner/pull/70) | open | 3bbb58e4ffe0 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#71](https://github.com/kakinymax/xiao-scanner/pull/71) | open | 853d6f36a2e6 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 保全済み・整理待ち |
-| [#72](https://github.com/kakinymax/xiao-scanner/pull/72) | open | 8b9218735eae | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#73](https://github.com/kakinymax/xiao-scanner/pull/73) | open | 2f80465fc588 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 保全済み・整理待ち |
-| [#74](https://github.com/kakinymax/xiao-scanner/pull/74) | open | c5e44670beb3 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 保全済み・整理待ち |
-| [#75](https://github.com/kakinymax/xiao-scanner/pull/75) | open | ab440df76580 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#76](https://github.com/kakinymax/xiao-scanner/pull/76) | open | 40966ed15bfd | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#77](https://github.com/kakinymax/xiao-scanner/pull/77) | open | 3e3fc0b4e6c1 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 保全済み・整理待ち |
-| [#78](https://github.com/kakinymax/xiao-scanner/pull/78) | open | f6e15c036c6e | CSVループのpad関数移動。追加最適化として保存し、ISSUESの後続課題へ集約して閉じる。 | 保全済み・整理待ち |
-| [#79](https://github.com/kakinymax/xiao-scanner/pull/79) | open | eda925e94b6c | 三件は同じ製品patch-id。sprintf置換の残りを含む。固有差分を保存し、ISSUESの後続修正へ集約して閉じる。 | 保全済み・整理待ち |
-| [#80](https://github.com/kakinymax/xiao-scanner/pull/80) | open | 48b45a4caeaa | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#81](https://github.com/kakinymax/xiao-scanner/pull/81) | open | de274c304bdd | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#82](https://github.com/kakinymax/xiao-scanner/pull/82) | open | d8529da0ca69 | CDNのSRI追加提案。#106反映済みmainの二つの実ファイルのSHA384一致を確認済み。別の提案を保全して閉じる。 | 保全済み・整理待ち |
-| [#83](https://github.com/kakinymax/xiao-scanner/pull/83) | open | 4b26856ab335 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 保全済み・整理待ち |
-| [#84](https://github.com/kakinymax/xiao-scanner/pull/84) | open | 4eebce78d605 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#85](https://github.com/kakinymax/xiao-scanner/pull/85) | open | e06b54e04815 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#86](https://github.com/kakinymax/xiao-scanner/pull/86) | open | 079d9addf9a2 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 保全済み・整理待ち |
-| [#87](https://github.com/kakinymax/xiao-scanner/pull/87) | open | bd436dbc53d2 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 保全済み・整理待ち |
-| [#88](https://github.com/kakinymax/xiao-scanner/pull/88) | open | 1c9f327d5a25 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#89](https://github.com/kakinymax/xiao-scanner/pull/89) | open | 949192078aeb | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 保全済み・整理待ち |
-| [#90](https://github.com/kakinymax/xiao-scanner/pull/90) | open | 5446db3ecd60 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#91](https://github.com/kakinymax/xiao-scanner/pull/91) | open | d34cd6a44cdb | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 保全済み・整理待ち |
-| [#92](https://github.com/kakinymax/xiao-scanner/pull/92) | open | c25eccd2fa20 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#93](https://github.com/kakinymax/xiao-scanner/pull/93) | open | bc062903f7bb | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 保全済み・整理待ち |
-| [#94](https://github.com/kakinymax/xiao-scanner/pull/94) | open | fa3de1a38d69 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 保全済み・整理待ち |
-| [#95](https://github.com/kakinymax/xiao-scanner/pull/95) | open | 64cc9b99c44b | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#96](https://github.com/kakinymax/xiao-scanner/pull/96) | open | 4ed783356405 | 三件は同じ製品patch-id。sprintf置換の残りを含む。固有差分を保存し、ISSUESの後続修正へ集約して閉じる。 | 保全済み・整理待ち |
-| [#97](https://github.com/kakinymax/xiao-scanner/pull/97) | open | cbbf4e363db9 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#98](https://github.com/kakinymax/xiao-scanner/pull/98) | open | 4160413fcc0e | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 保全済み・整理待ち |
-| [#99](https://github.com/kakinymax/xiao-scanner/pull/99) | open | 72967b6bd15d | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#100](https://github.com/kakinymax/xiao-scanner/pull/100) | open | 0bb2e59f3318 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 保全済み・整理待ち |
-| [#101](https://github.com/kakinymax/xiao-scanner/pull/101) | open | e49f88287bde | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 保全済み・整理待ち |
-| [#102](https://github.com/kakinymax/xiao-scanner/pull/102) | open | fcd1ef740bbf | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#103](https://github.com/kakinymax/xiao-scanner/pull/103) | open | cb9b3d599239 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
-| [#104](https://github.com/kakinymax/xiao-scanner/pull/104) | open | 1c526ae67c80 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 保全済み・整理待ち |
-| [#105](https://github.com/kakinymax/xiao-scanner/pull/105) | open | 2b497ad262df | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 保全済み・整理待ち |
+| [#47](https://github.com/kakinymax/xiao-scanner/pull/47) | open | c4cd05b1f338 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#48](https://github.com/kakinymax/xiao-scanner/pull/48) | open | 82481ee7e3e3 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#49](https://github.com/kakinymax/xiao-scanner/pull/49) | open | f8d4e07546f4 | 三件は同じ製品patch-id。sprintf置換の残りを含む。固有差分を保存し、ISSUESの後続修正へ集約して閉じる。 | 2026-10-03クローズ済み・差分保全 |
+| [#50](https://github.com/kakinymax/xiao-scanner/pull/50) | open | ddcb2cc2eb35 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#51](https://github.com/kakinymax/xiao-scanner/pull/51) | open | badeaf6e0b2d | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#52](https://github.com/kakinymax/xiao-scanner/pull/52) | open | 27ff3a44c66a | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 2026-10-03クローズ済み・差分保全 |
+| [#53](https://github.com/kakinymax/xiao-scanner/pull/53) | open | 17d72f1542dd | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#54](https://github.com/kakinymax/xiao-scanner/pull/54) | open | fde31faf8c70 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 2026-10-03クローズ済み・差分保全 |
+| [#55](https://github.com/kakinymax/xiao-scanner/pull/55) | open | 81f67805b664 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#56](https://github.com/kakinymax/xiao-scanner/pull/56) | open | dd9b72b68e74 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#57](https://github.com/kakinymax/xiao-scanner/pull/57) | open | 21a017e2dbed | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 2026-10-03クローズ済み・差分保全 |
+| [#58](https://github.com/kakinymax/xiao-scanner/pull/58) | open | 9af77e017566 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#59](https://github.com/kakinymax/xiao-scanner/pull/59) | open | ebf4bd32b497 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 2026-10-03クローズ済み・差分保全 |
+| [#60](https://github.com/kakinymax/xiao-scanner/pull/60) | open | 206bbcc33bcb | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#61](https://github.com/kakinymax/xiao-scanner/pull/61) | open | c7a6daf072e2 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 2026-10-03クローズ済み・差分保全 |
+| [#62](https://github.com/kakinymax/xiao-scanner/pull/62) | open | 995e66993d11 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#63](https://github.com/kakinymax/xiao-scanner/pull/63) | open | 73f800683f78 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#64](https://github.com/kakinymax/xiao-scanner/pull/64) | open | 27173d1cafc0 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#65](https://github.com/kakinymax/xiao-scanner/pull/65) | open | 3a5b7570f9c9 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#66](https://github.com/kakinymax/xiao-scanner/pull/66) | open | 113fc8b5b94e | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 2026-10-03クローズ済み・差分保全 |
+| [#67](https://github.com/kakinymax/xiao-scanner/pull/67) | open | ee9afeb720e2 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#68](https://github.com/kakinymax/xiao-scanner/pull/68) | open | 2aa768f4fd9f | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#69](https://github.com/kakinymax/xiao-scanner/pull/69) | open | 0fd6f8e66be9 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 2026-10-03クローズ済み・差分保全 |
+| [#70](https://github.com/kakinymax/xiao-scanner/pull/70) | open | 3bbb58e4ffe0 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#71](https://github.com/kakinymax/xiao-scanner/pull/71) | open | 853d6f36a2e6 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 2026-10-03クローズ済み・差分保全 |
+| [#72](https://github.com/kakinymax/xiao-scanner/pull/72) | open | 8b9218735eae | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#73](https://github.com/kakinymax/xiao-scanner/pull/73) | open | 2f80465fc588 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 2026-10-03クローズ済み・差分保全 |
+| [#74](https://github.com/kakinymax/xiao-scanner/pull/74) | open | c5e44670beb3 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 2026-10-03クローズ済み・差分保全 |
+| [#75](https://github.com/kakinymax/xiao-scanner/pull/75) | open | ab440df76580 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#76](https://github.com/kakinymax/xiao-scanner/pull/76) | open | 40966ed15bfd | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#77](https://github.com/kakinymax/xiao-scanner/pull/77) | open | 3e3fc0b4e6c1 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 2026-10-03クローズ済み・差分保全 |
+| [#78](https://github.com/kakinymax/xiao-scanner/pull/78) | open | f6e15c036c6e | CSVループのpad関数移動。追加最適化として保存し、ISSUESの後続課題へ集約して閉じる。 | 2026-10-03クローズ済み・差分保全 |
+| [#79](https://github.com/kakinymax/xiao-scanner/pull/79) | open | eda925e94b6c | 三件は同じ製品patch-id。sprintf置換の残りを含む。固有差分を保存し、ISSUESの後続修正へ集約して閉じる。 | 2026-10-03クローズ済み・差分保全 |
+| [#80](https://github.com/kakinymax/xiao-scanner/pull/80) | open | 48b45a4caeaa | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#81](https://github.com/kakinymax/xiao-scanner/pull/81) | open | de274c304bdd | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#82](https://github.com/kakinymax/xiao-scanner/pull/82) | open | d8529da0ca69 | CDNのSRI追加提案。#106反映済みmainの二つの実ファイルのSHA384一致を確認済み。別の提案を保全して閉じる。 | 2026-10-03クローズ済み・差分保全 |
+| [#83](https://github.com/kakinymax/xiao-scanner/pull/83) | open | 4b26856ab335 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 2026-10-03クローズ済み・差分保全 |
+| [#84](https://github.com/kakinymax/xiao-scanner/pull/84) | open | 4eebce78d605 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#85](https://github.com/kakinymax/xiao-scanner/pull/85) | open | e06b54e04815 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#86](https://github.com/kakinymax/xiao-scanner/pull/86) | open | 079d9addf9a2 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 2026-10-03クローズ済み・差分保全 |
+| [#87](https://github.com/kakinymax/xiao-scanner/pull/87) | open | bd436dbc53d2 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 2026-10-03クローズ済み・差分保全 |
+| [#88](https://github.com/kakinymax/xiao-scanner/pull/88) | open | 1c9f327d5a25 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#89](https://github.com/kakinymax/xiao-scanner/pull/89) | open | 949192078aeb | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 2026-10-03クローズ済み・差分保全 |
+| [#90](https://github.com/kakinymax/xiao-scanner/pull/90) | open | 5446db3ecd60 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#91](https://github.com/kakinymax/xiao-scanner/pull/91) | open | d34cd6a44cdb | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 2026-10-03クローズ済み・差分保全 |
+| [#92](https://github.com/kakinymax/xiao-scanner/pull/92) | open | c25eccd2fa20 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#93](https://github.com/kakinymax/xiao-scanner/pull/93) | open | bc062903f7bb | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 2026-10-03クローズ済み・差分保全 |
+| [#94](https://github.com/kakinymax/xiao-scanner/pull/94) | open | fa3de1a38d69 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 2026-10-03クローズ済み・差分保全 |
+| [#95](https://github.com/kakinymax/xiao-scanner/pull/95) | open | 64cc9b99c44b | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#96](https://github.com/kakinymax/xiao-scanner/pull/96) | open | 4ed783356405 | 三件は同じ製品patch-id。sprintf置換の残りを含む。固有差分を保存し、ISSUESの後続修正へ集約して閉じる。 | 2026-10-03クローズ済み・差分保全 |
+| [#97](https://github.com/kakinymax/xiao-scanner/pull/97) | open | cbbf4e363db9 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#98](https://github.com/kakinymax/xiao-scanner/pull/98) | open | 4160413fcc0e | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 2026-10-03クローズ済み・差分保全 |
+| [#99](https://github.com/kakinymax/xiao-scanner/pull/99) | open | 72967b6bd15d | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#100](https://github.com/kakinymax/xiao-scanner/pull/100) | open | 0bb2e59f3318 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 2026-10-03クローズ済み・差分保全 |
+| [#101](https://github.com/kakinymax/xiao-scanner/pull/101) | open | e49f88287bde | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 2026-10-03クローズ済み・差分保全 |
+| [#102](https://github.com/kakinymax/xiao-scanner/pull/102) | open | fcd1ef740bbf | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#103](https://github.com/kakinymax/xiao-scanner/pull/103) | open | cb9b3d599239 | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
+| [#104](https://github.com/kakinymax/xiao-scanner/pull/104) | open | 1c526ae67c80 | setSafeHTML未定義を修正する同種提案。#104由来の最小実装を移行ブランチに取り込み、他案・付随テスト・旧ログ差分は保全して閉じる。 | 2026-10-03クローズ済み・差分保全 |
+| [#105](https://github.com/kakinymax/xiao-scanner/pull/105) | open | 2b497ad262df | 現行mainのCanvas寸法ガードと同種の最適化。移行中の追加最適化は保留し、差分を保全して閉じる。CSV pad移動・ベンチマーク変更等の副差分も保全する。 | 2026-10-03クローズ済み・差分保全 |
 | [#106](https://github.com/kakinymax/xiao-scanner/pull/106) | merged | 04ee4c2251eb | 以前にマージ済み。履歴を保全し、旧作業ブランチを整理対象にする。 | 既存状態を維持 |
 | [#107](https://github.com/kakinymax/xiao-scanner/pull/107) | merged | 0170c1777f70 | 以前にマージ済み。履歴を保全し、旧作業ブランチを整理対象にする。 | 既存状態を維持 |
