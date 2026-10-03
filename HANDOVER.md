@@ -43,6 +43,10 @@ XIAO ESP32C3向けビルド、同じC++処理の733件/6シナリオ群、Python
 
 [移行状況](docs/migration/STATUS.md)、[全PR台帳](docs/migration/PR_LEDGER.md)、[全ブランチ台帳](docs/migration/BRANCH_LEDGER.md)、[共同対応の完了記録](docs/migration/JOINT_ACTIONS.md)を参照する。現在のチャットはプロジェクト外だが、上記フォルダを指定して作業を継続できる。
 
+## 新版の変更記録
+
+Wi-Fi・Discord版の実装は[PR #114](https://github.com/kakinymax/xiao-scanner/pull/114)。製品コードのSHAは446c82189b61fbff485d45b97b1f8acb968eb4a9。GitHubから28ファイルを取得し、ローカルと内容が一致することを確認した。文書追記はコードのSHAと区別する。実機への書き込みと受入は共同対応待ち。
+
 ## 実装とデータの注意
 
 - 編集するWeb本体は直下のindex.html。古いweb_scanner内の作業版へ上書きしない。

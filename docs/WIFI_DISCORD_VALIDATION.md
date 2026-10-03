@@ -1,6 +1,10 @@
 # Wi-Fi・Discord版の検証記録
 
-2026-10-04。対象はmcu_firmware/xiao_env_wifi_discord/とtools/setup_temperature.py。実装前の理由は[設計判断](DECISIONS.md)D009・D010、操作は[使い方](WIFI_DISCORD.md)に記載。反映PR・ソースの識別番号は本記録の反映時に追記する。
+2026-10-04。対象はmcu_firmware/xiao_env_wifi_discord/とtools/setup_temperature.py。実装前の理由は[設計判断](DECISIONS.md)D009・D010、操作は[使い方](WIFI_DISCORD.md)に記載。
+
+## GitHubでの変更記録
+
+[PR #114](https://github.com/kakinymax/xiao-scanner/pull/114)に実装をまとめた。製品コードとテストの識別番号は[446c82189b61fbff485d45b97b1f8acb968eb4a9](https://github.com/kakinymax/xiao-scanner/commit/446c82189b61fbff485d45b97b1f8acb968eb4a9)。GitHubから28ファイルを取得し直し、PCのソースと一致することを確認した。後続の文書追記はこのコードを変更しない。実機に書いた版はまだなく、PC検証と実機の受入を区別する。
 
 ## PCで完了した確認
 
@@ -9,7 +13,7 @@
 | XIAO ESP32C3向けビルド | Arduino CLI 1.5.1、ESP32 core 3.3.0、既定XIAO_ESP32C3で成功。プログラム1,244,296 / 1,310,720バイト、静的RAM43,992 / 327,680バイト | 新スケッチとU8g2/RTClib・WiFi/HTTPS/cJSON/証明書束が対象ボード向けにコンパイル・リンクでき、既定領域へ収まること |
 | 計測・通知・履歴・設定のC++ | tests/firmware/core_test.cppで6シナリオ群・733件の値と条件を確認、成功。同じthermo_core.hとdevice_config.hをそのままコンパイルして実行 | 下記のロジック・形式・境界。実センサー・電源断・Wi-Fi・Discordの再現ではない |
 | PC設定ツール | Python標準unittest、7件成功 | 応答分割、起動メッセージ・別要求の除外、旧版への設定防止、エラーや状態に秘密値を表示しないこと、時間切れ・長い要求、URL制限、秘密入力の非表示不能時の停止 |
-| 起動コマンド | tools/setup_temperature.ps1 --helpが成功、pyserial 3.5を準備 | このWindows環境で設定ツールを起動できること。実USB設定成功ではない |
+| 起動コマンド | tools/setup_temperature.ps1 --helpが成功。pyserial 3.5を準備し、--statusでポート検出まで起動。確認時点のUSBポートは0件 | このWindows環境で依存関係を読み込み設定ツールを起動できること。実USB設定成功ではない |
 
 最初のC++確認はWindowsネイティブ形式で608件成功。履歴の区切りを追加して生成し直したexeはWindowsのアプリケーション制御により実行不可だったため、**OSの設定を変更せず**同じテストをWASI形式へコンパイルし、既存Node.js 24.19.0で733件を実行した。Zig 0.17.0は公式配布ハッシュを確認して作業用toolsへ配置。cJSONは本体付属と同じ1.7.18の公式ソースをPC検証に使用。NodeのWASIは実験的APIの警告が出るが、本番ファームウェアの依存ではない。新しいテストフレームワーク・定期実行は導入していない。
 
