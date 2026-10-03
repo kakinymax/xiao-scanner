@@ -41,7 +41,9 @@ $env:ARDUINO_DIRECTORIES_DATA = 'C:\Users\pc\Documents\Codex\mcu'
 & $arduinoCli --config-file $cliConfig compile --fqbn esp32:esp32:XIAO_ESP32C3 --build-path build/collector mcu_firmware/xiao_env_ai_collector
 ```
 
-compileは実機に書き込まない。現在の実機の版と接続確認は、2026-10-04のユーザー指示により移行の必須条件から外した。今後のコード変更・書き込み時に対象スケッチと接続を確認する。LittleFSのログが必要な場合は、領域変更・消去前に保全する。
+compileは実機に書き込まない。現在の実機の版と接続確認は移行の必須条件から外して移行を完了したが、その後ユーザーが現在の実機を完成版の基準とすることを指定した。[実機基準の記録](DEVICE_BASELINE.md)を確認する。4 MB原本とLittleFSログを保全済み。今後増えるログは領域変更・消去前に追加保全する。
+
+実機の開発用ライブラリ情報とBLEソースパスはcore **3.3.7**を示す。照合用に別dataフォルダ `C:\Users\pc\Documents\Codex\mcu-match-337` を用意し、公式core 3.3.7、ESP32-C3用ライブラリ、esp-rv32 2511、esptool 5.1.0で保存済みAI収集版をコンパイルした。core 3.3.0環境は保持した。生成アプリは実機と完全一致せず、元ソースとビルド設定の照合を続ける。compile成功だけで実機の完成版を再現済みとは扱わず、未確認の候補を実機へ書き込まない。
 
 ## Git
 
