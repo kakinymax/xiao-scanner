@@ -10,7 +10,7 @@ XIAO ESP32C3で温度・湿度・不快指数を記録し、QR/BLEでブラウ�
 
 移行PR [#108](https://github.com/kakinymax/xiao-scanner/pull/108)をmainへ反映し、Codexの作業コピーとの一致を確認した。旧PR59件と旧ブランチ104本は、履歴を保全して整理済み。
 
-Julesの温度計への書き込みアクセスを解除し、確認待ち12件を停止、旧セッション93件をアーカイブへ整理した。完全移行にはCodex登録、旧端末、実機、Julesの未公開差分とCI Fixerの最終確認が残る。[共同対応票](docs/migration/JOINT_ACTIONS.md)に沿って進める。
+Julesの温度計への書き込みアクセスを解除し、確認待ち12件を停止、旧セッション93件をアーカイブへ整理した。Codexに既存フォルダをプロジェクト登録済み。完全移行には旧端末、実機、Julesの未公開差分とCI Fixerの最終確認が残る。[共同対応票](docs/migration/JOINT_ACTIONS.md)に沿って進める。
 
 ## 編集対象
 
