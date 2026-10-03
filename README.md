@@ -2,7 +2,7 @@
 
 保存中の旧版は、XIAO ESP32C3で温度・湿度・不快指数を記録し、QR/BLEでブラウザへ渡す環境モニター。開発窓口はCodex、共有するソースと履歴の基準はGitHub main。
 
-2026-10-04に、常時給電で温湿度・履歴・ブザーを残し、Wi-FiからDiscordへ通知する[新版の方針](docs/REDESIGN.md)を決定。Webスキャナー・QR/BLE・不快指数・AI予測/学習ログは新版から廃止する。現在はコード変更前の記録・仕様確定段階。
+2026-10-04に、常時給電で温湿度・履歴・ブザーを残し、Wi-FiからDiscordへ通知する新版を実装。[新しい温度計の使い方](docs/WIFI_DISCORD.md)、[検証記録](docs/WIFI_DISCORD_VALIDATION.md)、[実機切替の共同対応票](docs/WIFI_DISCORD_JOINT_ACTIONS.md)を参照する。Webスキャナー・QR/BLE・不快指数・AI予測/学習ログは新スケッチに含めない。実機切替・実通知・旧Web公開の終了は未確認の別工程。
 
 [プロジェクトのヒストリー](docs/PROJECT_HISTORY.md)で構想・変更・失敗とコードの対応を追える。[設計判断](docs/DECISIONS.md)、[説明用メモ](docs/PORTFOLIO.md)、[履歴の根拠](docs/history/antigravity-history-evidence.md)も参照する。
 
@@ -20,17 +20,19 @@
 
 | 場所 | 役割 |
 |---|---|
+| mcu_firmware/xiao_env_wifi_discord/ | 新しい開発対象。常時給電・温湿度・履歴・ブザー・Wi-Fi/Discord通知 |
+| tools/setup_temperature.py | USBで本体の接続情報・通知条件・画面などを設定するPCツール |
 | index.html | 現行Web画面。GitHub Pagesも直下のこのファイルを使う |
 | mcu_firmware/xiao_env_monitor/ | 通常の温湿度モニター用スケッチ |
 | mcu_firmware/xiao_env_ai_collector/ | LittleFSにAIログを蓄積し、TinyMLモデルを使うスケッチ |
 | ai_training/ | 既存ログ、旧形式パーサー、学習ガイド |
-| tests/ | Jestの機能テストと過去のベンチマーク |
+| tests/ | 旧WebのJestテスト、過去のベンチマーク、新版のC++/PC設定ツールの検証 |
 | archives/ | 旧ファームウェアと未完成作業版の保管 |
 | docs/history/ | 移行前の説明・引き継ぎ・Julesの判断記録 |
 | docs/migration/ | 移行状況、全PR・ブランチの整理台帳 |
 | AGENTS.md | Codex向け作業指示 |
 
-通常はmonitorかai_collectorのどちらか一方を実機に書き込む。現在実機で動いている版は未確認。
+次に実機へ切り替える対象はwifi_discord。旧monitor/ai_collectorを新しいWi-Fi版として書き込まない。現在の実機はAI収集版の系統を読み取り保全済みだが、正確な元ソースは未確認。[実機基準](docs/DEVICE_BASELINE.md)を読む。
 
 ## 既知課題と旧作業版
 
