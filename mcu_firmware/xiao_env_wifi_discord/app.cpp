@@ -424,6 +424,10 @@ void handleSerial(uint64_t now) {
 } // namespace
 
 void setupThermometer() {
+  // HWCDC defaults to 256 bytes; a complete USB request can contain 1535 bytes.
+  // Reserve the queues before begin so requests and public replies are not truncated.
+  Serial.setRxBufferSize(2048);
+  Serial.setTxBufferSize(2048);
   Serial.begin(115200); // USB CDC on boot must be enabled in the board options.
   pinMode(BUTTON_PIN, INPUT_PULLUP); pinMode(BUZZER_PIN, OUTPUT); digitalWrite(BUZZER_PIN, LOW);
   Wire.begin(); Wire.setTimeOut(50);
