@@ -47,6 +47,8 @@ XIAO ESP32C3向けビルド、同じC++処理の733件/6シナリオ群、Python
 
 Wi-Fi・Discord版の実装は[PR #114](https://github.com/kakinymax/xiao-scanner/pull/114)。製品コードのSHAは446c82189b61fbff485d45b97b1f8acb968eb4a9。GitHubから28ファイルを取得し、ローカルと内容が一致することを確認した。文書追記はコードのSHAと区別する。新版の書き込み・ハッシュ照合は完了。USBの新版起動は確認済み。ベース/センサー付きの動作と使用環境での受入は共同対応待ち。
 
+実機切替とRESET後のUSB起動確認の記録は[PR #115](https://github.com/kakinymax/xiao-scanner/pull/115)、初版の記録SHAはf586fe903e756174e96c195fc64bd80cfc968a31。実機の製品コードはPR #114の版。8ファイルのGitHub取得照合を確認した。ベース/センサーの取り付けと通信の受入は未完了。
+
 ## 実装とデータの注意
 
 - 編集するWeb本体は直下のindex.html。古いweb_scanner内の作業版へ上書きしない。

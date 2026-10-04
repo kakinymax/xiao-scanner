@@ -2,6 +2,8 @@
 
 2026-10-04。対象は以前に完成版として保全した同じXIAO ESP32C3。**書き込み・領域の照合・RESET後のUSB起動確認は完了。ベース/センサーと使用環境での受入は確認中。** [設計判断D011](DECISIONS.md)、[検証記録](WIFI_DISCORD_VALIDATION.md)、[共同対応票](WIFI_DISCORD_JOINT_ACTIONS.md)を参照。
 
+記録は[PR #115](https://github.com/kakinymax/xiao-scanner/pull/115)、記録初版SHAはf586fe903e756174e96c195fc64bd80cfc968a31。製品コードと記録の更新を区別する。GitHubから8ファイルを取得し直し、PCの記録との一致を確認した。
+
 ## 書き込み前の保全
 
 - USB接続: COM4、ESP32-C3 rev0.4、4MB。旧保全と同じ本体を確認した。機器の個別識別情報は公開文書へ転記しない。
