@@ -16,7 +16,7 @@
 
 ## 新版の実装と残る確認
 
-Wi-Fi・Discord版を別スケッチに実装した。[検証記録](docs/WIFI_DISCORD_VALIDATION.md)を参照。実機の書き換えと、実Wi-Fi/NTP・Discord受信・センサー切断時の操作・ブザー/画面・電源断後の復元は未確認で、[共同対応票](docs/WIFI_DISCORD_JOINT_ACTIONS.md)に維持する。旧Webの公開停止は新版の稼働確認後に扱う。
+Wi-Fi・Discord版を別スケッチに実装した。[検証記録](docs/WIFI_DISCORD_VALIDATION.md)を参照。実機の追加保全、新版の書き込み・ハッシュ照合、RESET後の新版USB応答を確認した。[切替の記録](docs/DEVICE_WIFI_CUTOVER.md)を参照。ベース/センサー付きの動作、実Wi-Fi/NTP・Discord受信・センサー切断時の操作・ブザー/画面・電源断後の復元は未確認で、[共同対応票](docs/WIFI_DISCORD_JOINT_ACTIONS.md)に維持する。旧Webの公開停止は新版の稼働確認後に扱う。
 
 本体プログラムは既定の1.25MiBアプリ領域の約94%を使用する。現行は収まるが、追加機能を導入する際はサイズを再確認し、データ保全なしにパーティションを変更しない。PCテストだけで実機メモリ・長時間稼働・電源断中のNVS動作を保証しない。
 
