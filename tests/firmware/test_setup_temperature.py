@@ -45,6 +45,28 @@ class SetupTests(unittest.TestCase):
         self.assertEqual(len(port.writes), 1)
         self.assertEqual(json.loads(port.writes[0])["cmd"], "status")
 
+    def test_identify_retries_timeout_and_ignores_delayed_previous_reply(self):
+        port = FakeSerial([b'{"id":1,"ok":true,"firmware":"old-collector"}\n',
+                           b'{"id":2,"ok":true,"firmware":"wifi-discord-1.0.1"}\n'])
+        client = setup.DeviceClient(port, timeout=1)
+        with patch.object(setup.time, "monotonic", side_effect=[0, 2, 3, 3, 3]):
+            reply = client.identify()
+        self.assertEqual(reply["firmware"], "wifi-discord-1.0.1")
+        self.assertEqual([json.loads(packet) for packet in port.writes],
+                         [{"cmd": "status", "id": 1}, {"cmd": "status", "id": 2}])
+        self.assertEqual(client.timeout, 1)
+
+    def test_identify_stops_after_two_timeouts_and_writes_are_not_retried(self):
+        port = FakeSerial([])
+        with self.assertRaises(setup.ResponseTimeout):
+            setup.DeviceClient(port, timeout=0.001).identify()
+        self.assertEqual(len(port.writes), 2)
+        self.assertTrue(all(json.loads(packet)["cmd"] == "status" for packet in port.writes))
+        port = FakeSerial([])
+        with self.assertRaises(setup.ResponseTimeout):
+            setup.DeviceClient(port, timeout=0.001).request("configure", {"name": "test"})
+        self.assertEqual(len(port.writes), 1)
+
     def test_timeout_and_oversized_request(self):
         port = FakeSerial([])
         with self.assertRaises(setup.DeviceError):

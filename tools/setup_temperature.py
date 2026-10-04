@@ -24,13 +24,17 @@ class DeviceError(Exception):
     pass
 
 
+class ResponseTimeout(DeviceError):
+    pass
+
+
 class DeviceClient:
     def __init__(self, connection: Any, timeout: float = 15.0):
         self.connection = connection
         self.timeout = timeout
         self.request_id = 0
 
-    def request(self, command: str, settings: dict | None = None) -> dict:
+    def request(self, command: str, settings: dict | None = None, *, timeout: float | None = None) -> dict:
         self.request_id += 1
         body: dict[str, Any] = {"cmd": command, "id": self.request_id}
         if settings is not None:
@@ -39,7 +43,7 @@ class DeviceClient:
         if len(data) > 1535:
             raise DeviceError(ERRORS["request_too_long"])
         self.connection.write(data + b"\n")
-        deadline = time.monotonic() + self.timeout
+        deadline = time.monotonic() + (self.timeout if timeout is None else timeout)
         pending = bytearray()
         while time.monotonic() < deadline:
             fragment = self.connection.readline()
@@ -62,10 +66,15 @@ class DeviceClient:
                 error = response.get("error")
                 raise DeviceError(ERRORS.get(error, "本体が操作を受け付けませんでした。") if isinstance(error, str) else "本体が操作を受け付けませんでした。")
             return response
-        raise DeviceError("本体の応答を待つ時間を超えました。接続と書き込まれた版を確認してください。")
+        raise ResponseTimeout("本体の応答を待つ時間を超えました。接続と書き込まれた版を確認してください。")
 
     def identify(self) -> dict:
-        status = self.request("status")
+        # A newly opened USB connection can lose its first response. Retry only
+        # this read-only identification, never configuration writes or messages.
+        try:
+            status = self.request("status", timeout=min(self.timeout, 3.0))
+        except ResponseTimeout:
+            status = self.request("status")
         version = status.get("firmware", "")
         if not isinstance(version, str) or not version.startswith("wifi-discord-"):
             raise DeviceError("Wi-Fi・Discord版の温度計ではありません。接続設定は送信していません。")
