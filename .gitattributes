@@ -1,3 +1,6 @@
 # Preserve the byte-for-byte Antigravity working copies for comparison.
 archives/antigravity-2026-05-21/index.html -text
 archives/antigravity-2026-05-21/parse_bin.py -text
+
+# Preserve the retired scanner as copied from the Windows checkout.
+archives/web-scanner-2026-10-04/index.html.txt -text

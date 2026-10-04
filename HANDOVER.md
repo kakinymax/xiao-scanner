@@ -59,3 +59,7 @@ Wi-Fi・Discord版の実装は[PR #114](https://github.com/kakinymax/xiao-scanne
 - 旧Jules資料はdocs/history/julesへ保持。新しいJulesタスクや定期実行を作らない。
 
 AGENTS.mdを使い、変更に応じたテスト・ビルドとGitHub反映後のSHA照合を行う。未解決のISSUES.mdは維持する。
+
+## 旧Web終了案内の準備（未公開）
+
+codex/retire-web-scannerで直下index.htmlの終了案内を準備。旧main 7c42c29のWebはarchives/web-scanner-2026-10-04/index.html.txtへバイト一致で保管し、復元手順とテストを残した。Jest 7件、390px/1280pxのブラウザ表示、日本語の使い方へのリンクは確認済み。[準備の記録](docs/WEB_SCANNER_RETIREMENT.md)を参照。新版のベース/センサー付き動作と実通信は共同確認待ち。実機受入までこの変更をmainへ反映せず、旧公開の終了を完了にしない。

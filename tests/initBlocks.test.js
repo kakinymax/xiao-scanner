@@ -12,7 +12,7 @@ describe('initBlocks', () => {
   let document;
 
   beforeEach(() => {
-    const html = fs.readFileSync(path.resolve(__dirname, '../index.html'), 'utf8');
+    const html = fs.readFileSync(path.resolve(__dirname, '../archives/web-scanner-2026-10-04/index.html.txt'), 'utf8');
     dom = new JSDOM(html, {
       runScripts: "dangerously",
       // Suppress JSDOM canvas error logging since we don't need canvas for initBlocks

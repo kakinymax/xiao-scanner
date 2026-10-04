@@ -9,7 +9,7 @@ describe('AI response rendering', () => {
   let dom;
   let element;
   beforeEach(() => {
-    dom = new JSDOM(fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8'), {
+    dom = new JSDOM(fs.readFileSync(path.join(__dirname, '../archives/web-scanner-2026-10-04/index.html.txt'), 'utf8'), {
       runScripts: 'dangerously',
       virtualConsole: new VirtualConsole().sendTo(console, { omitJSDOMErrors: true }),
     });

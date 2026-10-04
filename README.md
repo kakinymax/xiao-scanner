@@ -2,7 +2,7 @@
 
 保存中の旧版は、XIAO ESP32C3で温度・湿度・不快指数を記録し、QR/BLEでブラウザへ渡す環境モニター。開発窓口はCodex、共有するソースと履歴の基準はGitHub main。
 
-2026-10-04に、常時給電で温湿度・履歴・ブザーを残し、Wi-FiからDiscordへ通知する新版を実装。[新しい温度計の使い方](docs/WIFI_DISCORD.md)、[検証記録](docs/WIFI_DISCORD_VALIDATION.md)、[実機切替の共同対応票](docs/WIFI_DISCORD_JOINT_ACTIONS.md)を参照する。Webスキャナー・QR/BLE・不快指数・AI予測/学習ログは新スケッチに含めない。実機切替・実通知・旧Web公開の終了は未確認の別工程。
+2026-10-04に、常時給電で温湿度・履歴・ブザーを残し、Wi-FiからDiscordへ通知する新版を実装。[新しい温度計の使い方](docs/WIFI_DISCORD.md)、[検証記録](docs/WIFI_DISCORD_VALIDATION.md)、[実機切替の共同対応票](docs/WIFI_DISCORD_JOINT_ACTIONS.md)を参照する。Webスキャナー・QR/BLE・不快指数・AI予測/学習ログは新スケッチに含めない。新版の実機書き込み・ハッシュ照合・RESET後のUSB起動は確認済み。ベース/センサー付きの動作・実通知は共同確認待ち。旧Webの終了案内は別ブランチで準備しており、新版の実機受入まで公開を切り替えない。[終了案内の記録](docs/WEB_SCANNER_RETIREMENT.md)を参照する。
 
 [プロジェクトのヒストリー](docs/PROJECT_HISTORY.md)で構想・変更・失敗とコードの対応を追える。[設計判断](docs/DECISIONS.md)、[説明用メモ](docs/PORTFOLIO.md)、[履歴の根拠](docs/history/antigravity-history-evidence.md)も参照する。
 
@@ -22,7 +22,8 @@
 |---|---|
 | mcu_firmware/xiao_env_wifi_discord/ | 新しい開発対象。常時給電・温湿度・履歴・ブザー・Wi-Fi/Discord通知 |
 | tools/setup_temperature.py | USBで本体の接続情報・通知条件・画面などを設定するPCツール |
-| index.html | 現行Web画面。GitHub Pagesも直下のこのファイルを使う |
+| index.html | GitHub Pagesの入口。このブランチでは終了案内を準備。mainへの反映は実機受入後 |
+| archives/web-scanner-2026-10-04/ | 変更前のWebスキャナーをそのまま保管。旧テストの対象・復元手順 |
 | mcu_firmware/xiao_env_monitor/ | 通常の温湿度モニター用スケッチ |
 | mcu_firmware/xiao_env_ai_collector/ | LittleFSにAIログを蓄積し、TinyMLモデルを使うスケッチ |
 | ai_training/ | 既存ログ、旧形式パーサー、学習ガイド |
@@ -32,13 +33,13 @@
 | docs/migration/ | 移行状況、全PR・ブランチの整理台帳 |
 | AGENTS.md | Codex向け作業指示 |
 
-次に実機へ切り替える対象はwifi_discord。旧monitor/ai_collectorを新しいWi-Fi版として書き込まない。現在の実機はAI収集版の系統を読み取り保全済みだが、正確な元ソースは未確認。[実機基準](docs/DEVICE_BASELINE.md)を読む。
+現在の実機にはwifi_discordの新版を書き込み済み。旧monitor/ai_collectorを新しいWi-Fi版として書き込まない。切替前のAI収集版は全フラッシュとログを保全済み。正確な旧元ソースは未確認。[実機基準](docs/DEVICE_BASELINE.md)と[切替の記録](docs/DEVICE_WIFI_CUTOVER.md)を読む。
 
 ## 既知課題と旧作業版
 
 温度が60〜70℃として表示される症状、ログの完全性、転送と時系列の扱いは未解決。[ISSUES.md](ISSUES.md)を参照。Driveの16バイトヘッダー対応作業版は対応ファームウェアがないため、[保管資料](archives/antigravity-2026-05-21/README.md)として引き継ぐ。
 
-現行Web画面のGemini APIキーはブラウザlocalStorageへ保存する実装。キーはGitへ記録しない。カメラ・BLE・API通信の実動作は接続・権限を確認して検証する。
+保管した旧WebにはGemini APIキーをブラウザlocalStorageへ保存する実装がある。終了案内はスクリプトや設定入力を持たず、カメラ・BLE・API通信を行わない。旧Webの再公開を検討するときは[保管・復元手順](archives/web-scanner-2026-10-04/README.md)から確認する。
 
 ## 移行で実施した変更
 
