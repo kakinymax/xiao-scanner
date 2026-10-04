@@ -1,5 +1,7 @@
 # 旧Webスキャナーの運用終了準備
 
+2026-10-04：公開終了を確認済み。[PR #118](https://github.com/kakinymax/xiao-scanner/pull/118)を旧Web終了ブランチへ統合し、[PR #116](https://github.com/kakinymax/xiao-scanner/pull/116)をmainへ統合。実装のmain統合SHAは0d11b4651fe6603d751d04e43f92364160000680。https://kakinymax.github.io/xiao-scanner/ で『スキャナーの提供を終了しました』と新版の使い方リンクを確認した。Julesの旧作業やmainの履歴を書き換えず、旧HTMLの保管Blob 902bf292b33436e0e292d0dfe12ae26ecbb8a16cも再取得で一致。以下は準備と受入の経緯。
+
 2026-10-04。**終了案内は準備済み、未公開**。作業ブランチはcodex/retire-web-scanner。mainとGitHub Pagesの公開切替は、新しいWi-Fi・Discord版の実機受入後に行う。
 
 ## 変更と保全
