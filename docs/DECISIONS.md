@@ -151,6 +151,8 @@
 - **状態**: 製品コード変更前に記録。wifi-discord-1.0.1の通常/高温/継続/正常復帰・ブザー開始/停止・履歴の電源断保持・センサー未接続時の操作と再接続後の測定は確認済み。試験設定は元の公開設定へ復元済み、保存正常・履歴5点。追加実装は専用ブランチcodex/daily-trend-notificationsで行う。旧Web終了のPR #116は未公開のまま保ち、追加変更の受入後に統合する。
 - **一次資料**: [DiscordのWebhook送信](https://docs.discord.com/developers/resources/webhook#execute-webhook)・[添付ファイル](https://docs.discord.com/developers/reference#uploading-files)を確認。PNGとmultipart/form-dataで画像添付を送る。実際のコード/PR/SHAと受信・検証結果を実装後に追記する。
 
+- **D016の実機受信で見つかった表示修正**: 本人が追加Webhookへの自動センサー異常通知・手動確認通知、既存Webhookへの5点のPNGを共有し、両送信先が動くことを確認。手動通知にセンサー未取得と状態:通常が併記されたため、実装前に修正を決定。未取得時はセンサー確認中と表示し、自動のセンサー異常は温度超過と区別する。通知条件・時刻・グラフの処理は変えず、識別できる1.1.1へ更新する。
+
 ## 次の記録に使う項目
 
 - 日付・判断者・目的。

@@ -285,11 +285,10 @@ bool sendNotification(JobKind kind) {
       std::snprintf(values, sizeof(values), "センサーの現在値を取得できません");
       std::snprintf(measured, sizeof(measured), "未取得");
     }
-    std::snprintf(state, sizeof(state), "%s%s%s%s", mask ? "条件: " : "状態: 通常",
+    std::snprintf(state, sizeof(state), "%s%s%s%s", thermo::readingState(mask, valid),
       mask & thermo::TEMP_HIGH ? "高温 " : "", mask & thermo::TEMP_LOW ? "低温 " : "",
       mask & thermo::SENSOR_ERROR ? "センサー応答なし" : "");
-    const char *reason = test ? "異常通知先の手動送信確認" : monitor.pending == thermo::AlertEvent::Recovery ?
-      "正常な状態への復帰" : monitor.pending == thermo::AlertEvent::Changed ? "異常状態の変化" : "温度条件の超過・悪化";
+    const char *reason = test ? "異常通知先の手動送信確認" : thermo::alertTitle(monitor.pending, mask);
     std::snprintf(message, sizeof(message), "【%s】%s\n%s\n%s\n測定: %s\n通知: %s\n監視: 1時間ごと / 高温 %.1f℃超・低温 %.1f℃未満",
       config.settings.name, reason, values, state, measured, sent, config.settings.tempHigh, config.settings.tempLow);
   }

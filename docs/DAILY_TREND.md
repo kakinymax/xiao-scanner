@@ -48,3 +48,13 @@ HTTPSと画像作成は既存の別タスク。640×400・1bit PNGとmultipart�
 - 実際の0時までの連続稼働と、新条件での長時間の高温/低温推移はまだ確認していない。時刻境界と通知条件は上記の同じC++テストで確認。家庭のWi-Fi停止試験は本人のD015により今回見送り、問題が出たときに改善する運用観察項目。
 
 一次資料：[Discord Webhook](https://docs.discord.com/developers/resources/webhook#execute-webhook)、[添付ファイル](https://docs.discord.com/developers/reference#uploading-files)、[PNG仕様](https://www.w3.org/TR/png/)、[zlib](https://www.rfc-editor.org/rfc/rfc1950)、[DEFLATE](https://www.rfc-editor.org/rfc/rfc1951)。
+
+
+### 書き込みの確認（2026-10-04）
+
+[PR #118](https://github.com/kakinymax/xiao-scanner/pull/118)、製品コードSHA ae351d89e556342f992a05e9501ce5aa1d66f11a。22ファイルをGitHubから取得し直し、ステージしたツリーf75ed085f7ede2c052725d8688025d71287fd20aと一致。最終ビルドはprogram 1,249,584/1,310,720バイト、static RAM 55,768/327,680バイト。app bin 1,249,728バイト、SHA256 723f8bcfe6e456ab5154450030165c0aac185b62c77a476a2b379e51adfebfdb。旧版と領域表が同じことを確認し、app0の0x10000だけへ書き込み、ハッシュ一致・通常起動を確認した。Wi-Fi/NTP・既存Webhook設定・履歴5点・保存正常を保持。40℃超/0℃未満・定期数値停止・湿度通知停止・ブザー60分への移行を公開状態で確認。追加Webhook入力と両チャンネルの受信は本人へ確認中。
+
+
+### 両チャンネルの受信（1.1.0）
+
+本人が追加チャンネルの自動センサー異常15:37:01と手動確認15:37:14、既存チャンネルの画像を共有。対象2026/10/03 15:37〜10/04 15:37、履歴5点、温度/湿度の実測グラフと欠測の空白を確認。設定ツールを0で終了したことも本人が確認。読み取りで両Webhook設定済み、保存正常、履歴5点、HTTP200を確認した。手動のセンサー未取得の文面だけに矛盾があり、1.1.1で修正する。グラフ・温度監視・保存形式は変更しない。

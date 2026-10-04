@@ -35,6 +35,15 @@ struct DailySchedule {
 };
 
 enum class AlertEvent : uint8_t { None, Abnormal, Recovery, Changed };
+inline const char *alertTitle(AlertEvent event, uint8_t mask) {
+  if (event == AlertEvent::Recovery) return "正常な状態への復帰";
+  if (event == AlertEvent::Changed) return "異常状態の変化";
+  if ((mask & SENSOR_ERROR) && !(mask & (TEMP_HIGH | TEMP_LOW))) return "センサーの取得異常";
+  return "温度条件の超過・悪化";
+}
+inline const char *readingState(uint8_t mask, bool valid) {
+  return mask ? "条件: " : valid ? "状態: 通常" : "状態: センサー確認中";
+}
 // Only hourly samples advance the highest/lowest notified temperature band.
 // Cooling while still abnormal never lowers that boundary.
 struct HourlyMonitor {

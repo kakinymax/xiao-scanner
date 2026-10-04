@@ -10,6 +10,9 @@ using namespace thermo;
 constexpr uint32_t OCT4 = 1791039600U;
 
 static void temperatureBands() {
+  CHECK(!std::strcmp(readingState(0, false), "状態: センサー確認中"));
+  CHECK(!std::strcmp(readingState(0, true), "状態: 通常"));
+  CHECK(!std::strcmp(alertTitle(AlertEvent::Abnormal, SENSOR_ERROR), "センサーの取得異常"));
   HourlyMonitor m;
   uint32_t hour = OCT4;
   auto observe = [&](float t) { bool changed = m.observe(hour, t, 60, true, true, 40, 0); hour += 3600; return changed; };

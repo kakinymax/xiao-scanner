@@ -7,7 +7,7 @@
 #include <cstring>
 
 namespace thermo {
-constexpr const char *VERSION = "wifi-discord-1.1.0";
+constexpr const char *VERSION = "wifi-discord-1.1.1";
 constexpr size_t HISTORY_CAPACITY = 120;
 constexpr uint32_t HISTORY_STEP_SECONDS = 720;
 constexpr size_t HISTORY_BYTES = 12 + HISTORY_CAPACITY * 16 + 4;
