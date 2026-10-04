@@ -26,3 +26,5 @@
 [共同対応票](WIFI_DISCORD_JOINT_ACTIONS.md)の本体表示・操作、Wi-Fi/NTP、Discord受信、イベントと復帰、履歴保存と再起動、通信断/センサー断の確認が必要。下書きPRを作ったことやWebのテスト通過だけで、実機受入・公開終了を完了にしない。
 
 実機受入後にこの記録・共同対応票・引き継ぎの状態を更新し、案内をmainへ反映する。GitHub Pagesの実際の公開URLで案内を確認してから、運用終了を完了と記録する。現時点では公開切替を実行していない。
+
+[下書きPR #116](https://github.com/kakinymax/xiao-scanner/pull/116)、終了案内の実装SHA `026af4c89ff678befa93095fccf446febf572eec`。mainへの反映・公開切替は未実施。
