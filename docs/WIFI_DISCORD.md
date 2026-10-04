@@ -1,5 +1,7 @@
 # 新しいWi-Fi・Discord温湿度計の使い方
 
+現在の通知仕様はwifi-discord-1.1.0の[0時グラフ・毎時監視](DAILY_TREND.md)。日中の数値報告・通常起動報告は廃止し、既存チャンネルへ前日のグラフ、追加チャンネルへ40℃超/0℃未満の温度悪化・復帰を送る。以下の1.0.xの通知説明・受入記録は変更前の履歴として読む。
+
 XIAO ESP32C3・Grove AHT20・XIAO拡張ボードをそのまま使う。USBなどで常時給電し、本体で温度・湿度と履歴グラフを表示する。通知はWi-FiからDiscordへ直接送る。スマホスキャナー、QR、BLE、不快指数、AI予測・学習用大量ログは新しいスケッチに含まれない。
 
 コードは[mcu_firmware/xiao_env_wifi_discord](../mcu_firmware/xiao_env_wifi_discord/README.md)。旧スケッチ・モデル・計測ログは保管されている。**PCでの検証と、実際に本体を書き換えて使えることの確認は別**。[検証記録](WIFI_DISCORD_VALIDATION.md)と[共同対応票](WIFI_DISCORD_JOINT_ACTIONS.md)で状態を確認する。

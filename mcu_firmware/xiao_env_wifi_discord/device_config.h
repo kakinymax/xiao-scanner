@@ -6,7 +6,8 @@
 namespace thermo {
 struct Configuration {
   Settings settings;
-  char ssid[33]{}, password[64]{}, webhook[256]{};
+  char ssid[33]{}, password[64]{}, webhook[256]{}, alertWebhook[256]{};
+  Configuration() { settings.tempHigh = 40; settings.reportMinutes = 0; settings.humEnabled = false; settings.repeatMinutes = 60; }
   bool connectedSettings() const { return ssid[0] && validWebhook(webhook); }
 };
 
@@ -19,11 +20,16 @@ inline bool configurationFromJson(const cJSON *node, Configuration &out) {
     for (const cJSON *earlier = node->child; earlier != item; earlier = earlier->next)
       if (!std::strcmp(earlier->string, item->string)) return false;
     const char *key = item->string;
+    if (!std::strcmp(key, "policy_version")) {
+      if (!cJSON_IsNumber(item) || item->valuedouble != 2) return false;
+      continue;
+    }
     char *dest = nullptr; size_t capacity = 0;
     if (!std::strcmp(key, "name")) { dest = candidate.settings.name; capacity = sizeof(candidate.settings.name); }
     else if (!std::strcmp(key, "ssid")) { dest = candidate.ssid; capacity = sizeof(candidate.ssid); }
     else if (!std::strcmp(key, "wifi_password")) { dest = candidate.password; capacity = sizeof(candidate.password); }
     else if (!std::strcmp(key, "webhook_url")) { dest = candidate.webhook; capacity = sizeof(candidate.webhook); }
+    else if (!std::strcmp(key, "alert_webhook_url")) { dest = candidate.alertWebhook; capacity = sizeof(candidate.alertWebhook); }
     if (dest) {
       if (!cJSON_IsString(item) || !item->valuestring || std::strlen(item->valuestring) >= capacity) return false;
       for (const unsigned char *p = reinterpret_cast<const unsigned char *>(item->valuestring); *p; ++p)
@@ -50,13 +56,15 @@ inline bool configurationFromJson(const cJSON *node, Configuration &out) {
     }
     float *number = nullptr;
     if (!std::strcmp(key, "temp_high")) number = &candidate.settings.tempHigh;
+    else if (!std::strcmp(key, "temp_low")) number = &candidate.settings.tempLow;
     else if (!std::strcmp(key, "humidity_high")) number = &candidate.settings.humHigh;
     else if (!std::strcmp(key, "temp_hysteresis")) number = &candidate.settings.tempHysteresis;
     else if (!std::strcmp(key, "humidity_hysteresis")) number = &candidate.settings.humHysteresis;
     if (!number || !cJSON_IsNumber(item) || !std::isfinite(item->valuedouble)) return false;
     *number = float(item->valuedouble);
   }
-  if (!validSettings(candidate.settings) || (candidate.webhook[0] && !validWebhook(candidate.webhook))) return false;
+  if (!validSettings(candidate.settings) || (candidate.webhook[0] && !validWebhook(candidate.webhook)) ||
+      (candidate.alertWebhook[0] && !validWebhook(candidate.alertWebhook))) return false;
   size_t passLength = std::strlen(candidate.password);
   if (passLength && passLength < 8) return false;
   out = candidate;
@@ -66,6 +74,7 @@ inline bool configurationFromJson(const cJSON *node, Configuration &out) {
 inline cJSON *configurationToJson(const Configuration &c, bool includeSecrets) {
   cJSON *o = cJSON_CreateObject();
   if (!o) return nullptr;
+  cJSON_AddNumberToObject(o, "policy_version", 2);
   cJSON_AddStringToObject(o, "name", c.settings.name);
   cJSON_AddNumberToObject(o, "sample_seconds", c.settings.sampleSeconds);
   cJSON_AddNumberToObject(o, "report_minutes", c.settings.reportMinutes);
@@ -73,6 +82,7 @@ inline cJSON *configurationToJson(const Configuration &c, bool includeSecrets) {
   cJSON_AddNumberToObject(o, "hold_seconds", c.settings.holdSeconds);
   cJSON_AddNumberToObject(o, "cooldown_minutes", c.settings.repeatMinutes);
   cJSON_AddNumberToObject(o, "temp_high", c.settings.tempHigh);
+  cJSON_AddNumberToObject(o, "temp_low", c.settings.tempLow);
   cJSON_AddNumberToObject(o, "humidity_high", c.settings.humHigh);
   cJSON_AddNumberToObject(o, "temp_hysteresis", c.settings.tempHysteresis);
   cJSON_AddNumberToObject(o, "humidity_hysteresis", c.settings.humHysteresis);
@@ -84,6 +94,7 @@ inline cJSON *configurationToJson(const Configuration &c, bool includeSecrets) {
     cJSON_AddStringToObject(o, "ssid", c.ssid);
     cJSON_AddStringToObject(o, "wifi_password", c.password);
     cJSON_AddStringToObject(o, "webhook_url", c.webhook);
+    cJSON_AddStringToObject(o, "alert_webhook_url", c.alertWebhook);
   }
   return o;
 }

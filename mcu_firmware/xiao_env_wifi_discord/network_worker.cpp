@@ -1,4 +1,5 @@
 #include "network_worker.h"
+#include "trend_png.h"
 #include <cJSON.h>
 #include <esp_crt_bundle.h>
 #include <esp_http_client.h>
@@ -38,25 +39,32 @@ void worker(void *) {
   WebhookJob job;
   for (;;) {
     if (xQueueReceive(jobs, &job, portMAX_DELAY) != pdTRUE) continue;
-    WebhookResult result; result.generation = job.generation;
+    WebhookResult result; result.generation = job.generation; result.kind = job.kind; result.token = job.token;
     Response response;
     if (!thermo::validWebhook(job.url)) result.httpStatus = 400;
     else {
       char url[272]; std::snprintf(url, sizeof(url), "%s?wait=true", job.url);
       esp_http_client_config_t config{};
       config.url = url; config.method = HTTP_METHOD_POST;
-      config.timeout_ms = 8000;
+      config.timeout_ms = 15000;
       config.crt_bundle_attach = esp_crt_bundle_attach;
       config.disable_auto_redirect = true;
       config.event_handler = onHttpEvent; config.user_data = &response;
       config.buffer_size = 1024; config.buffer_size_tx = 1536;
       esp_http_client_handle_t client = esp_http_client_init(&config);
       if (client) {
-        esp_http_client_set_header(client, "Content-Type", "application/json");
+        bool graph = job.kind == JobKind::Daily || job.kind == JobKind::GraphTest;
+        uint8_t *body = graph ? static_cast<uint8_t *>(std::malloc(thermo::TREND_BODY_BYTES)) : nullptr;
+        size_t length = graph && body ? thermo::trendMultipart(body, thermo::TREND_BODY_BYTES,
+          job.payload, job.history, job.begin, job.end, job.rangeLabel) : graph ? 0 : std::strlen(job.payload);
+        esp_http_client_set_header(client, "Content-Type", graph ? "multipart/form-data; boundary=XiaoTrendBoundary1" : "application/json");
         esp_http_client_set_header(client, "User-Agent", "XIAO-Temperature/1.0");
-        esp_http_client_set_post_field(client, job.payload, std::strlen(job.payload));
-        if (esp_http_client_perform(client) == ESP_OK) result.httpStatus = esp_http_client_get_status_code(client);
+        if (length) {
+          esp_http_client_set_post_field(client, graph ? reinterpret_cast<const char *>(body) : job.payload, length);
+          if (esp_http_client_perform(client) == ESP_OK) result.httpStatus = esp_http_client_get_status_code(client);
+        }
         esp_http_client_cleanup(client);
+        std::free(body);
       }
       if (result.httpStatus == 429) {
         cJSON *body = cJSON_Parse(response.body);
@@ -69,7 +77,8 @@ void worker(void *) {
       result.waitMs = thermo::secondsToMs(response.retry);
     }
     // Never echo the URL, payload, response body, SSID or password into logs.
-    std::memset(job.url, 0, sizeof(job.url)); std::memset(job.payload, 0, sizeof(job.payload)); job.generation = 0;
+    std::memset(job.url, 0, sizeof(job.url)); std::memset(job.payload, 0, sizeof(job.payload));
+    job.history.count = 0; job.generation = 0;
     xQueueSend(results, &result, portMAX_DELAY);
   }
 }
@@ -80,7 +89,7 @@ bool startWebhookWorker() {
   jobs = xQueueCreate(1, sizeof(WebhookJob));
   results = xQueueCreate(1, sizeof(WebhookResult));
   if (!jobs || !results) return false;
-  return xTaskCreate(worker, "discord", 8192, nullptr, 1, nullptr) == pdPASS;
+  return xTaskCreate(worker, "discord", 12288, nullptr, 1, nullptr) == pdPASS;
 }
 bool submitWebhook(const WebhookJob &job) { return jobs && xQueueSend(jobs, &job, 0) == pdTRUE; }
 bool receiveWebhookResult(WebhookResult &result) { return results && xQueueReceive(results, &result, 0) == pdTRUE; }

@@ -1,5 +1,6 @@
 #include "app.h"
 #include "device_config.h"
+#include "daily_core.h"
 #include "network_worker.h"
 #include "sensor_driver.h"
 #include <Arduino.h>
@@ -16,8 +17,14 @@ namespace {
 constexpr int BUTTON_PIN = 3, BUZZER_PIN = 5;
 thermo::Configuration config;
 thermo::History history;
-thermo::Alarms alarms;
+thermo::Gate localHigh, localLow, localSensor;
 thermo::Notifications notifications;
+thermo::Notifications graphNotifications;
+thermo::DailyState dailyState;
+bool stateDirty = false, stateOk = true, stateCorrupt = false, sending = false;
+uint32_t stateGeneration = 0;
+int stateSlot = 0;
+uint64_t nextStateSave = 0;
 SensorDriver sensor;
 RTC_PCF8563 rtc;
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C oled(U8G2_R0, U8X8_PIN_NONE);
@@ -70,7 +77,13 @@ void loadConfig() {
   if (json.isEmpty()) return;
   cJSON *object = cJSON_Parse(json.c_str());
   configOk = object && thermo::configurationFromJson(object, config);
+  bool migrate = configOk && !cJSON_GetObjectItemCaseSensitive(object, "policy_version");
   cJSON_Delete(object);
+  if (migrate) {
+    config.settings.tempHigh = 40; config.settings.tempLow = 0;
+    config.settings.reportMinutes = 0; config.settings.humEnabled = false; config.settings.repeatMinutes = 60;
+    configOk = saveConfig(config); // Preserve the existing Wi-Fi/graph URL and history.
+  }
 }
 void loadHistory() {
   Preferences prefs;
@@ -100,6 +113,50 @@ bool saveHistory() {
   }
   if (success) { ++historyGeneration; historySlot = 1 - historySlot; historyDirty = false; }
   storageOk = success; return success;
+}
+
+void loadDailyState() {
+  Preferences prefs;
+  if (!prefs.begin("thermo_daily", false)) { stateOk = false; return; }
+  static uint8_t bytes[thermo::DAILY_STATE_BYTES];
+  static thermo::DailyState candidate;
+  uint32_t generation = 0; bool any = false, found = false;
+  for (int i = 0; i < 2; ++i) {
+    const char *key = i ? "day1" : "day0";
+    size_t size = prefs.getBytesLength(key); any |= size > 0;
+    if (size == sizeof(bytes) && prefs.getBytes(key, bytes, sizeof(bytes)) == sizeof(bytes) &&
+        candidate.decode(bytes, sizeof(bytes), generation) && (!found || thermo::newerGeneration(generation, stateGeneration))) {
+      dailyState = candidate; stateGeneration = generation; stateSlot = i; found = true;
+    }
+  }
+  prefs.end(); if (any && !found) { stateOk = false; stateCorrupt = true; }
+}
+bool saveDailyState() {
+  static uint8_t bytes[thermo::DAILY_STATE_BYTES];
+  dailyState.encode(bytes, stateGeneration + 1);
+  Preferences prefs; bool success = false;
+  if (prefs.begin("thermo_daily", false)) {
+    success = prefs.putBytes(stateSlot ? "day0" : "day1", bytes, sizeof(bytes)) == sizeof(bytes);
+    prefs.end();
+  }
+  if (success) { ++stateGeneration; stateSlot = 1 - stateSlot; stateDirty = false; }
+  stateOk = success; return success;
+}
+uint8_t localMask() {
+  return (localHigh.active ? thermo::TEMP_HIGH : 0) | (localLow.active ? thermo::TEMP_LOW : 0) |
+         (localSensor.active ? thermo::SENSOR_ERROR : 0);
+}
+void handleDailyState(uint64_t now) {
+  if (stateCorrupt) return; // Do not erase a damaged notification record and re-send old episodes.
+  uint32_t epoch = clockEpoch();
+  if (dailyState.daily.advance(epoch, history)) stateDirty = true;
+  if (readingAttempted && epoch && (!readingValid || readingEpoch) && now - readingAt <= uint64_t(config.settings.sampleSeconds) * 2000) {
+    uint32_t revision = dailyState.monitor.revision;
+    if (dailyState.monitor.observe(epoch, temperature, humidity, readingValid && readingEpoch,
+        config.settings.tempEnabled, config.settings.tempHigh, config.settings.tempLow)) stateDirty = true;
+    if (revision != dailyState.monitor.revision) dailyState.monitor.measuredEpoch = readingValid ? readingEpoch : 0;
+  }
+  if (stateDirty && now >= nextStateSave) nextStateSave = now + (saveDailyState() ? 0 : 60000);
 }
 
 void handleClock() {
@@ -138,7 +195,7 @@ void handleWifi(uint64_t now) {
 
 void stopBuzz() { noTone(BUZZER_PIN); pulsesLeft = 0; }
 void handleBuzzer(uint64_t now) {
-  uint8_t mask = alarms.mask() & (thermo::TEMP_HIGH | thermo::HUM_HIGH);
+  uint8_t mask = localMask() & (thermo::TEMP_HIGH | thermo::TEMP_LOW);
   if (!mask || !config.settings.buzzerEnabled) {
     if (buzzerMask || pulsesLeft) stopBuzz();
     buzzerMask = 0; return;
@@ -158,7 +215,13 @@ void completeMeasurement(bool valid, float t, float h, uint64_t now) {
   if (!valid) newHistorySegment = true;
   readingEpoch = valid ? clockEpoch() : 0;
   if (valid) { temperature = t; humidity = h; }
-  alarms.observe(t, h, valid, now, config.settings);
+  uint64_t hold = uint64_t(config.settings.holdSeconds) * 1000;
+  localSensor.observe(!valid, true, now, hold);
+  if (!config.settings.tempEnabled) { localHigh = thermo::Gate{}; localLow = thermo::Gate{}; }
+  else {
+    localHigh.observe(t > config.settings.tempHigh, valid, now, hold);
+    localLow.observe(t < config.settings.tempLow, valid, now, hold);
+  }
   if (valid && readingEpoch) {
     if (history.pruneFuture(readingEpoch)) { historyDirty = true; nextHistoryEpoch = 0; }
     if (!nextHistoryEpoch && history.count)
@@ -182,64 +245,102 @@ void handleSensor(uint64_t now) {
   }
 }
 
-const char *reasonText(thermo::Reason reason) {
-  switch (reason) {
-  case thermo::Reason::Startup: return "起動・設定後の報告";
-  case thermo::Reason::Alarm: return "設定した条件の超過";
-  case thermo::Reason::Recovery: return "正常な状態への復帰";
-  case thermo::Reason::Changed: return "異常状態の変化";
-  case thermo::Reason::Reconnected: return "通信復帰後の現在の状態";
-  case thermo::Reason::Reminder: return "異常状態の継続";
-  case thermo::Reason::Test: return "手動の送信確認";
-  default: return "定期報告";
-  }
-}
-bool sendNotification(thermo::Reason reason) {
-  if (!workerReady || notifications.busy) return false;
-  WebhookJob job; job.generation = configGeneration;
-  std::snprintf(job.url, sizeof(job.url), "%s", config.webhook);
-  char values[100], measured[40], sent[40], state[160], message[800];
+bool sendNotification(JobKind kind) {
+  if (!workerReady || sending) return false;
+  bool graph = kind == JobKind::Daily || kind == JobKind::GraphTest;
+  static WebhookJob job; // Copied into the worker queue; keep the 3.5 KB job off the loop stack.
+  job.history.count = 0; job.token = job.begin = job.end = 0;
+  job.generation = configGeneration; job.kind = kind;
+  std::snprintf(job.url, sizeof(job.url), "%s", graph ? config.webhook : config.alertWebhook);
+  if (!thermo::validWebhook(job.url)) return false;
+  char message[800], measured[40], sent[40], values[100], state[120];
   timeText(clockEpoch(), sent, sizeof(sent), "%Y/%m/%d %H:%M:%S JST");
-  if (readingValid) {
-    std::snprintf(values, sizeof(values), "温度 %.1f℃ / 湿度 %.1f%%", temperature, humidity);
-    timeText(readingEpoch, measured, sizeof(measured), "%Y/%m/%d %H:%M:%S JST");
+  uint8_t mask = localMask();
+  if (graph) {
+    if (kind == JobKind::Daily) {
+      job.token = dailyState.daily.targetDay; job.begin = thermo::dayStart(job.token); job.end = job.begin + 86400;
+      job.history = dailyState.daily.frozen;
+    } else {
+      job.end = clockEpoch(); job.begin = job.end - 86400;
+      for (size_t i = 0; i < history.count; ++i)
+        if (history.points[i].epoch >= job.begin && history.points[i].epoch < job.end) job.history.append(history.points[i]);
+    }
+    char begin[40], end[40];
+    timeText(job.begin, begin, sizeof(begin), "%Y/%m/%d %H:%M");
+    timeText(job.end, end, sizeof(end), "%Y/%m/%d %H:%M");
+    std::snprintf(job.rangeLabel, sizeof(job.rangeLabel), "%s - %s JST", begin, end);
+    std::snprintf(message, sizeof(message), "【%s】%s\n対象: %s〜%s JST\n上: 温度 / 下: 湿度\n記録: %u点（12分間隔、欠測・電源断は空白）",
+      config.settings.name, kind == JobKind::Daily ? "1日の温湿度グラフ" : "グラフの手動送信確認（直近24時間）",
+      begin, end, unsigned(job.history.count));
   } else {
-    std::snprintf(values, sizeof(values), "センサーの現在値を取得できません");
-    std::snprintf(measured, sizeof(measured), "未取得");
+    const auto &monitor = dailyState.monitor;
+    bool test = kind == JobKind::AlertTest;
+    bool valid = test ? readingValid : !(monitor.pendingMask & thermo::SENSOR_ERROR) && monitor.measuredEpoch;
+    float t = test ? temperature : monitor.temperature, h = test ? humidity : monitor.humidity;
+    mask = test ? localMask() : monitor.pendingMask; job.token = monitor.revision;
+    if (valid) {
+      std::snprintf(values, sizeof(values), "温度 %.1f℃ / 湿度 %.1f%%", t, h);
+      timeText(test ? readingEpoch : monitor.measuredEpoch, measured, sizeof(measured), "%Y/%m/%d %H:%M:%S JST");
+    } else {
+      std::snprintf(values, sizeof(values), "センサーの現在値を取得できません");
+      std::snprintf(measured, sizeof(measured), "未取得");
+    }
+    std::snprintf(state, sizeof(state), "%s%s%s%s", mask ? "条件: " : "状態: 通常",
+      mask & thermo::TEMP_HIGH ? "高温 " : "", mask & thermo::TEMP_LOW ? "低温 " : "",
+      mask & thermo::SENSOR_ERROR ? "センサー応答なし" : "");
+    const char *reason = test ? "異常通知先の手動送信確認" : monitor.pending == thermo::AlertEvent::Recovery ?
+      "正常な状態への復帰" : monitor.pending == thermo::AlertEvent::Changed ? "異常状態の変化" : "温度条件の超過・悪化";
+    std::snprintf(message, sizeof(message), "【%s】%s\n%s\n%s\n測定: %s\n通知: %s\n監視: 1時間ごと / 高温 %.1f℃超・低温 %.1f℃未満",
+      config.settings.name, reason, values, state, measured, sent, config.settings.tempHigh, config.settings.tempLow);
   }
-  uint8_t mask = alarms.mask();
-  std::snprintf(state, sizeof(state), "%s%s%s%s", mask ? "条件: " : readingValid ? "状態: 通常" : "状態: センサー確認中",
-    mask & thermo::TEMP_HIGH ? "高温 " : "", mask & thermo::HUM_HIGH ? "高湿度 " : "",
-    mask & thermo::SENSOR_ERROR ? "センサー応答なし" : "");
-  std::snprintf(message, sizeof(message), "【%s】%s\n%s\n%s\n測定: %s\n通知: %s",
-    config.settings.name, reasonText(reason), values, state, measured, sent);
   cJSON *body = cJSON_CreateObject();
+  if (!body) return false;
   cJSON_AddStringToObject(body, "content", message);
   cJSON *mentions = cJSON_AddObjectToObject(body, "allowed_mentions");
   cJSON_AddArrayToObject(mentions, "parse");
+  if (graph) {
+    cJSON *embeds = cJSON_AddArrayToObject(body, "embeds");
+    cJSON *embed = cJSON_CreateObject(); cJSON_AddItemToArray(embeds, embed);
+    cJSON *image = cJSON_AddObjectToObject(embed, "image");
+    cJSON_AddStringToObject(image, "url", "attachment://trend.png");
+  }
   char *json = cJSON_PrintUnformatted(body);
   bool accepted = false;
   if (json && std::strlen(json) < sizeof(job.payload)) {
-    std::snprintf(job.payload, sizeof(job.payload), "%s", json);
-    accepted = submitWebhook(job);
+    std::snprintf(job.payload, sizeof(job.payload), "%s", json); accepted = submitWebhook(job);
   }
   cJSON_free(json); cJSON_Delete(body);
-  if (accepted) notifications.begin(mask);
+  if (accepted) { (graph ? graphNotifications : notifications).begin(mask); sending = true; }
   return accepted;
 }
 void handleNotifications(uint64_t now) {
   WebhookResult result;
   if (receiveWebhookResult(result)) {
+    sending = false;
+    bool graph = result.kind == JobKind::Daily || result.kind == JobKind::GraphTest;
+    auto &delivery = graph ? graphNotifications : notifications;
     if (result.generation == configGeneration) {
-      lastHttpStatus = result.httpStatus;
-      sendAttempted = true;
-      notifications.finish(thermo::classifyHttp(result.httpStatus), now, result.waitMs);
-    }
+      lastHttpStatus = result.httpStatus; sendAttempted = true;
+      auto outcome = thermo::classifyHttp(result.httpStatus);
+      delivery.finish(outcome, now, result.waitMs);
+      // Discord may apply a global wait to both routes, so share the deadline.
+      if (result.waitMs) {
+        auto &other = graph ? notifications : graphNotifications;
+        if (other.nextAttempt < now + result.waitMs) other.nextAttempt = now + result.waitMs;
+      }
+      if (outcome == thermo::Outcome::Success) {
+        if (result.kind == JobKind::Daily) { dailyState.daily.complete(result.token); stateDirty = true; }
+        if (result.kind == JobKind::Alert) { dailyState.monitor.complete(result.token); stateDirty = true; }
+      }
+    } else delivery.busy = false;
   }
-  bool ready = readingAttempted && config.connectedSettings() && WiFi.status() == WL_CONNECTED && clockEpoch() && workerReady;
-  thermo::Reason reason = notifications.candidate(now, alarms.mask(), ready, config.settings);
-  if (reason != thermo::Reason::None && !sendNotification(reason))
-    notifications.finish(thermo::Outcome::Transient, now);
+  if (sending || stateDirty || !stateOk || !configOk || !workerReady || !clockEpoch() || WiFi.status() != WL_CONNECTED) return;
+  if (dailyState.daily.targetDay && thermo::validWebhook(config.webhook) && !graphNotifications.blocked && now >= graphNotifications.nextAttempt) {
+    if (!sendNotification(JobKind::Daily)) graphNotifications.finish(thermo::Outcome::Transient, now);
+  } else if (dailyState.monitor.pending != thermo::AlertEvent::None && thermo::validWebhook(config.alertWebhook) &&
+      !notifications.blocked && now >= notifications.nextAttempt) {
+    if (!sendNotification(JobKind::Alert)) notifications.finish(thermo::Outcome::Transient, now);
+  }
 }
 
 void handleButton(uint64_t now) {
@@ -268,12 +369,12 @@ void drawCurrent() {
     oled.setFont(u8g2_font_6x10_tr); oled.drawStr(0, 29, "Sensor unavailable");
   }
   oled.setFont(u8g2_font_5x7_tr);
-  if (!configOk || !storageOk) oled.drawStr(0, 63, "Storage error: USB");
+  if (!configOk || !storageOk || !stateOk) oled.drawStr(0, 63, "Storage error: USB");
   else if (!config.connectedSettings()) oled.drawStr(0, 63, "Initial setup: USB");
-  else if (notifications.blocked) oled.drawStr(0, 63, "Send error: USB");
+  else if (notifications.blocked || graphNotifications.blocked) oled.drawStr(0, 63, "Send error: USB");
   else {
     std::snprintf(label, sizeof(label), "H:%u %s %s", unsigned(history.count),
-      ntpSeen ? "NTP" : clockEpoch() ? "RTC" : "WAIT", alarms.mask() ? "ALERT" : "OK");
+      ntpSeen ? "NTP" : clockEpoch() ? "RTC" : "WAIT", localMask() ? "ALERT" : "OK");
     oled.drawStr(0, 63, label);
   }
 }
@@ -336,8 +437,11 @@ cJSON *baseReply(int id, bool ok, const char *error = nullptr) {
 }
 void applyConfig(const thermo::Configuration &candidate, uint64_t now) {
   bool wifiChanged = std::strcmp(config.ssid, candidate.ssid) || std::strcmp(config.password, candidate.password);
+  bool limitsChanged = config.settings.tempHigh != candidate.settings.tempHigh || config.settings.tempLow != candidate.settings.tempLow ||
+    config.settings.tempEnabled != candidate.settings.tempEnabled;
   config = candidate; configOk = true; ++configGeneration;
-  alarms = thermo::Alarms{}; notifications.reconfigure();
+  localHigh = localLow = localSensor = thermo::Gate{}; notifications.reconfigure(); graphNotifications.reconfigure();
+  if (limitsChanged) { dailyState.monitor = thermo::HourlyMonitor{}; stateDirty = true; }
   stopBuzz(); buzzerMask = 0;
   nextSample = 0; nextSave = now + uint64_t(config.settings.saveMinutes) * 60000;
   screenUntil = now + 30000; nextDraw = 0; lastHttpStatus = 0; sendAttempted = false;
@@ -366,42 +470,50 @@ void serialCommand(const char *line, uint64_t now) {
     cJSON *r = baseReply(id, true);
     cJSON_AddStringToObject(r, "firmware", thermo::VERSION);
     cJSON_AddBoolToObject(r, "configured", config.connectedSettings());
+    cJSON_AddBoolToObject(r, "alert_configured", thermo::validWebhook(config.alertWebhook));
     cJSON_AddBoolToObject(r, "wifi_connected", WiFi.status() == WL_CONNECTED);
     cJSON_AddStringToObject(r, "clock", ntpSeen ? "ntp" : clockEpoch() ? "rtc" : "none");
     cJSON_AddBoolToObject(r, "reading_valid", readingValid);
     if (readingValid) {
       cJSON_AddNumberToObject(r, "temperature", temperature); cJSON_AddNumberToObject(r, "humidity", humidity);
     }
-    cJSON_AddNumberToObject(r, "alarm_mask", alarms.mask());
+    cJSON_AddNumberToObject(r, "alarm_mask", localMask());
     cJSON_AddNumberToObject(r, "history_points", history.count);
-    cJSON_AddBoolToObject(r, "storage_ok", storageOk && configOk);
+    cJSON_AddBoolToObject(r, "storage_ok", storageOk && configOk && stateOk);
+    cJSON_AddNumberToObject(r, "daily_pending_day", dailyState.daily.targetDay);
+    cJSON_AddNumberToObject(r, "daily_delivered_day", dailyState.daily.deliveredDay);
+    cJSON_AddNumberToObject(r, "next_high_notification", dailyState.monitor.nextHigh);
+    cJSON_AddNumberToObject(r, "next_low_notification", dailyState.monitor.nextLow);
     cJSON_AddBoolToObject(r, "worker_ready", workerReady);
     cJSON_AddNumberToObject(r, "http_status", lastHttpStatus);
     cJSON_AddBoolToObject(r, "send_attempted", sendAttempted);
-    cJSON_AddBoolToObject(r, "send_blocked", notifications.blocked);
-    cJSON_AddBoolToObject(r, "sending", notifications.busy);
+    cJSON_AddBoolToObject(r, "send_blocked", notifications.blocked || graphNotifications.blocked);
+    cJSON_AddBoolToObject(r, "sending", sending);
     cJSON_AddNumberToObject(r, "retry_seconds", notifications.nextAttempt > now ? (notifications.nextAttempt - now + 999) / 1000 : 0);
     cJSON_AddItemToObject(r, "settings", thermo::configurationToJson(config, false)); reply(r);
   } else if (!std::strcmp(cmd->valuestring, "configure") || !std::strcmp(cmd->valuestring, "clear_connection")) {
     thermo::Configuration candidate = config;
-    if (notifications.busy) reply(baseReply(id, false, "busy_retry"));
+    if (sending) reply(baseReply(id, false, "busy_retry"));
     else {
       bool clear = !std::strcmp(cmd->valuestring, "clear_connection");
       bool parsed = true;
-      if (clear) { candidate.ssid[0] = 0; candidate.password[0] = 0; candidate.webhook[0] = 0; }
+      if (clear) { candidate.ssid[0] = 0; candidate.password[0] = 0; candidate.webhook[0] = 0; candidate.alertWebhook[0] = 0; }
       else parsed = thermo::configurationFromJson(cJSON_GetObjectItemCaseSensitive(root, "settings"), candidate);
       if (!parsed) reply(baseReply(id, false, "invalid_settings"));
       else if (!saveConfig(candidate)) reply(baseReply(id, false, "storage_failed"));
       else { applyConfig(candidate, now); reply(baseReply(id, true)); }
     }
-  } else if (!std::strcmp(cmd->valuestring, "test")) {
-    if (!readingAttempted || !config.connectedSettings() || WiFi.status() != WL_CONNECTED || !clockEpoch() || !workerReady)
+  } else if (!std::strcmp(cmd->valuestring, "test") || !std::strcmp(cmd->valuestring, "test_graph")) {
+    bool graph = !std::strcmp(cmd->valuestring, "test_graph");
+    auto &delivery = graph ? graphNotifications : notifications;
+    if (!(graph ? thermo::validWebhook(config.webhook) : thermo::validWebhook(config.alertWebhook)) ||
+        WiFi.status() != WL_CONNECTED || !clockEpoch() || !workerReady)
       reply(baseReply(id, false, "not_ready"));
-    else if (notifications.busy) reply(baseReply(id, false, "busy_retry"));
-    else if (now < notifications.nextAttempt) reply(baseReply(id, false, "retry_wait"));
+    else if (sending) reply(baseReply(id, false, "busy_retry"));
+    else if (now < delivery.nextAttempt) reply(baseReply(id, false, "retry_wait"));
     else {
-      notifications.blocked = false;
-      reply(baseReply(id, sendNotification(thermo::Reason::Test)));
+      delivery.blocked = false;
+      reply(baseReply(id, sendNotification(graph ? JobKind::GraphTest : JobKind::AlertTest)));
     }
   } else reply(baseReply(id, false, "unknown_command"));
   cJSON_Delete(root);
@@ -432,7 +544,7 @@ void setupThermometer() {
   pinMode(BUTTON_PIN, INPUT_PULLUP); pinMode(BUZZER_PIN, OUTPUT); digitalWrite(BUZZER_PIN, LOW);
   Wire.begin(); Wire.setTimeOut(50);
   setenv("TZ", "JST-9", 1); tzset();
-  loadConfig(); loadHistory();
+  loadConfig(); loadHistory(); loadDailyState();
   rtcPresent = rtc.begin();
   if (rtcPresent && !rtc.lostPower() && rtc.isrunning()) {
     uint32_t epoch = rtc.now().unixtime();
@@ -450,7 +562,7 @@ void setupThermometer() {
 }
 void loopThermometer() {
   uint64_t now = uptime();
-  handleSerial(now); handleWifi(now); handleClock(); handleSensor(now);
+  handleSerial(now); handleWifi(now); handleClock(); handleDailyState(now); handleSensor(now);
   handleBuzzer(now); handleButton(now); handleNotifications(now);
   if (historyDirty && now >= nextSave)
     nextSave = now + (saveHistory() ? uint64_t(config.settings.saveMinutes) * 60000 : 60000);

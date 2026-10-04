@@ -104,6 +104,26 @@ class SetupTests(unittest.TestCase):
             with self.assertRaises(setup.DeviceError):
                 setup.secret_input("secret: ")
 
+    def test_second_webhook_updates_only_alert_route_without_echoing(self):
+        value = "https://discord.com/api/webhooks/123456789012345678/PLACEHOLDER_NOT_A_REAL_TOKEN_123456"
+        port = FakeSerial([b'{"id":1,"ok":true}\n'])
+        stream = io.StringIO()
+        with patch.object(setup, "secret_input", return_value=value), contextlib.redirect_stdout(stream):
+            setup.configure_alert_webhook(setup.DeviceClient(port))
+        self.assertEqual(json.loads(port.writes[0]), {"cmd": "configure", "id": 1, "settings": {"alert_webhook_url": value}})
+        self.assertNotIn(value, stream.getvalue())
+        self.assertNotIn("wifi_password", port.writes[0].decode())
+        self.assertNotIn('"webhook_url"', port.writes[0].decode())
+
+    def test_new_policy_status_shows_route_readiness_without_secrets(self):
+        stream = io.StringIO()
+        with contextlib.redirect_stdout(stream):
+            setup.show_status({"firmware": "wifi-discord-1.1.0", "alert_configured": True,
+                "settings": {"alert_webhook_url": "PRIVATE_ALERT_URL"}})
+        self.assertIn("異常・復帰専用Webhook: 保存済み", stream.getvalue())
+        self.assertIn("0時", stream.getvalue())
+        self.assertNotIn("PRIVATE_ALERT_URL", stream.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

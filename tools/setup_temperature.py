@@ -138,6 +138,9 @@ def show_status(status: dict) -> None:
     clock = {"ntp": "ネット時刻", "rtc": "本体時計", "none": "時刻未取得"}.get(status.get("clock"), "未確認")
     print(f"本体の版: {status.get('firmware', '未確認')}")
     print("接続設定: " + ("保存済み" if status.get("configured") else "未設定"))
+    if status.get("firmware", "").startswith("wifi-discord-1.1."):
+        print("異常・復帰専用Webhook: " + ("保存済み" if status.get("alert_configured") else "未設定（7で追加）"))
+        print("自動通知: 0時の温湿度グラフ / 毎時の温度悪化・復帰（通常の数値報告なし）")
     print("Wi-Fi: " + ("接続中" if status.get("wifi_connected") else "未接続") + " / " + clock)
     if status.get("reading_valid"):
         print(f"温度 {status['temperature']:.1f}℃ / 湿度 {status['humidity']:.1f}%")
@@ -177,15 +180,11 @@ def configure_behavior(client: DeviceClient) -> None:
     settings = client.request("status")["settings"]
     print("空欄は現在の値を使います。これらの条件は好みに合わせる設定です。")
     updates = {
-        "report_minutes": number("定期通知の間隔（分、0で停止）", settings["report_minutes"], 0, 1440, integer=True),
-        "temp_enabled": yes_no("高温を通知する", settings["temp_enabled"]),
-        "temp_high": number("高温とする温度（℃）", settings["temp_high"], -40, 85),
-        "humidity_enabled": yes_no("高湿度を通知する", settings["humidity_enabled"]),
-        "humidity_high": number("高湿度とする湿度（%）", settings["humidity_high"], 0, 100),
-        "hold_seconds": number("条件が続いてから通知するまで（秒）", settings["hold_seconds"], 10, 3600, integer=True),
-        "cooldown_minutes": number("異常が続くときの再通知・ブザー間隔（分）", settings["cooldown_minutes"], 1, 1440, integer=True),
-        "temp_hysteresis": number("温度が何℃下がれば回復とするか", settings["temp_hysteresis"], 0.1, 10),
-        "humidity_hysteresis": number("湿度が何%下がれば回復とするか", settings["humidity_hysteresis"], 0.1, 20),
+        "temp_enabled": yes_no("高温・低温の通知とブザーを使う", settings["temp_enabled"]),
+        "temp_high": number("この温度を超えたら高温（℃、復帰はこの温度以下）", settings["temp_high"], -39, 85),
+        "temp_low": number("この温度未満なら低温（℃、復帰はこの温度以上）", settings.get("temp_low", 0), -40, 84),
+        "hold_seconds": number("本体ブザーの条件が続く時間（秒、Discordは毎時）", settings["hold_seconds"], 10, 3600, integer=True),
+        "cooldown_minutes": number("本体ブザーの再警報間隔（分）", settings["cooldown_minutes"], 1, 1440, integer=True),
         "buzzer_enabled": yes_no("本体ブザーを使う", settings["buzzer_enabled"]),
         "screen_always_on": yes_no("画面を常時表示する", settings["screen_always_on"]),
         "sample_seconds": number("温湿度を測る間隔（秒）", settings["sample_seconds"], 10, 300, integer=True),
@@ -194,7 +193,18 @@ def configure_behavior(client: DeviceClient) -> None:
     if yes_no("通知に表示する本体名を変更する", False):
         updates["name"] = read_text("本体名: ", 63)
     client.request("configure", updates)
-    print("本体へ設定を保存しました。異常の継続時間の判定はここからやり直します。")
+    print("本体へ設定を保存しました。温度条件を変えた場合は監視境界をやり直します。")
+
+
+def configure_alert_webhook(client: DeviceClient) -> None:
+    print("異常・復帰専用チャンネルのWebhookを追加します。既存のグラフ用・Wi-Fi設定は保持します。")
+    while True:
+        url = secret_input("異常・復帰用Webhook URL（表示されません）: ").strip()
+        if valid_webhook(url):
+            break
+        print("新しいチャンネルのDiscord Webhook URLを入力してください。")
+    client.request("configure", {"alert_webhook_url": url})
+    print("異常・復帰用Webhookを本体へ保存しました。4で送信先を確認できます。")
 
 
 def main() -> int:
@@ -229,7 +239,7 @@ def main() -> int:
             if args.status:
                 return 0
             while True:
-                print("\n1: Wi-Fi・Webhook設定  2: 通知・画面・ブザー設定  3: 状態確認\n4: Discordへ1回送信して確認  5: 接続設定だけを消去  0: 終了")
+                print("\n1: Wi-Fi・グラフ用Webhook設定  2: 温度条件・画面・ブザー設定  3: 状態確認\n4: 異常用チャンネルへ試験送信  5: 接続設定だけを消去\n6: グラフ用チャンネルへ試験送信  7: 異常・復帰用Webhookを追加  0: 終了")
                 choice = input("番号: ").strip()
                 try:
                     if choice == "0":
@@ -246,6 +256,11 @@ def main() -> int:
                     elif choice == "5":
                         client.request("clear_connection")
                         print("新版のWi-Fi・Webhook設定を消去しました。履歴と表示設定は保持しています。")
+                    elif choice == "6":
+                        client.request("test_graph")
+                        print("直近24時間のグラフの送信を開始しました。数秒後にDiscordで画像を確認してください。")
+                    elif choice == "7":
+                        configure_alert_webhook(client)
                 except DeviceError as error:
                     print(str(error))
     except DeviceError as error:
