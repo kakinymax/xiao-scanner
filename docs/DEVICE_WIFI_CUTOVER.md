@@ -56,7 +56,11 @@ RESET直後のUSB応答確認後、再確認で5秒/15秒の応答時間切れ�
 - 状態要求だけで実機21項目に成功。64/256/512/1024/1535バイトを各3回、1535バイトの日本語入力、1536バイトの拒否と次の状態応答、再オープン3回。設定が変わらないことも確認した。
 - C++733件・PC設定ツール7件も再確認。観察・ビルド・書き込み・通信結果はGitの外のusb-fix-source-manifest.json、usb-fix-build-manifest.json、upload-usb-fix.log、upload-usb-fix-result.json、usb-transport-checks-after.jsonに保持。
 
-本人がDiscord Webhookの準備完了を確認し、XIAO単体をPC接続したまま非表示入力の対話ツールを開いた。実設定・受信と最終のベース受入はまだ別に確認する。旧Web公開は変更していない。
+本人がDiscord Webhookの準備完了を確認し、XIAO単体をPC接続したまま非表示入力の対話ツールを開いた。その後、本人がPC入力・Wi-Fi/NTP・Discord試験受信を確認して終了した。公開状態も設定保存済み・Wi-Fi/NTP・保存正常・HTTP200。初回の再オープンの応答が時間切れになった場合を観察し、状態確認だけ待ち直すPCツールを判断D014に沿って追加。9件のテストが成功。USBを保った再起動後、保存設定でWi-Fi/NTP・HTTP200へ復帰し、公開設定の値を保持した。設定中はセンサーを外しているため、実測値の通知と最終ベース受入はまだ別に確認する。旧Web公開は変更していない。
+
+USB修正の製品コードと実機検査は[PR #117](https://github.com/kakinymax/xiao-scanner/pull/117)、SHA 180443590ba37d99cfa20400642047b1cc80bbcd。初回13ファイルのGitHub取得照合を確認した。生成物のハッシュは上記の通りで、文書追記のSHAと実機プログラムのSHAを区別する。
+
+実接続/再起動の公開状態はGitの外のruntime-after-setup.json、runtime-after-configured-restart.json、configured-restart.logに保管。PCツールの対応SHAは56a4c214cdf517afe73749538ad85fe7285be014。接続情報そのものは公開状態に含めず、フラッシュから読み出していない。
 
 ## 旧版に戻すための保全
 
