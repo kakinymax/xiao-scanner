@@ -1,5 +1,9 @@
 # Wi-Fi・Discord版の検証記録
 
+現在版はwifi-discord-1.1.1。[0時グラフ・毎時監視の検証と実機受信](DAILY_TREND.md)を参照。旧版1.0.xの試験を、新しい毎時の温度条件の長時間試験とは混同しない。
+
+追加テストは同じZig/WASI/cJSON環境でtests/firmware/daily_test.cppをコンパイルし、`node tests/firmware/run_wasi.cjs build/host-tests/daily_test.wasm build/host-tests`で画像を出力してから、`python -m unittest discover -s tests/firmware -p 'test_*.py'`を実行する。PNGの検証はその出力をPython標準のCRC/zlib/MIMEで独立に読む。190項目と16件が成功。既存core_test.cppの733項目も成功。
+
 2026-10-04。対象はmcu_firmware/xiao_env_wifi_discord/とtools/setup_temperature.py。実装前の理由は[設計判断](DECISIONS.md)D009・D010、操作は[使い方](WIFI_DISCORD.md)に記載。
 
 ## GitHubでの変更記録
