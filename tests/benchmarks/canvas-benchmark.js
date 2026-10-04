@@ -1,5 +1,6 @@
 const { chromium } = require('playwright');
 const path = require('path');
+const fs = require('fs');
 
 async function runBenchmark() {
   const browser = await chromium.launch({ headless: true });
@@ -7,8 +8,8 @@ async function runBenchmark() {
 
   page.on('console', msg => console.log('BROWSER:', msg.text()));
 
-  const filePath = `file://${path.resolve(__dirname, '../../index.html')}`;
-  await page.goto(filePath);
+  const archivePath = path.resolve(__dirname, '../../archives/web-scanner-2026-10-04/index.html.txt');
+  await page.setContent(fs.readFileSync(archivePath, 'utf8'));
 
   const result = await page.evaluate(async () => {
     // Mock dependencies

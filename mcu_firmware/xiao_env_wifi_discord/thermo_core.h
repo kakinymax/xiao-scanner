@@ -7,7 +7,7 @@
 #include <cstring>
 
 namespace thermo {
-constexpr const char *VERSION = "wifi-discord-1.0.1";
+constexpr const char *VERSION = "wifi-discord-1.1.1";
 constexpr size_t HISTORY_CAPACITY = 120;
 constexpr uint32_t HISTORY_STEP_SECONDS = 720;
 constexpr size_t HISTORY_BYTES = 12 + HISTORY_CAPACITY * 16 + 4;
@@ -21,6 +21,7 @@ struct Settings {
   uint32_t holdSeconds = 120;
   uint32_t repeatMinutes = 30;
   float tempHigh = 30.0f;
+  float tempLow = 0.0f;
   float humHigh = 80.0f;
   float tempHysteresis = 1.0f;
   float humHysteresis = 5.0f;
@@ -56,7 +57,7 @@ inline bool validSettings(const Settings &s) {
          s.sampleSeconds >= 10 && s.sampleSeconds <= 300 && s.reportMinutes <= 1440 &&
          s.saveMinutes >= 1 && s.saveMinutes <= 120 && s.holdSeconds >= 10 && s.holdSeconds <= 3600 &&
          s.repeatMinutes >= 1 && s.repeatMinutes <= 1440 &&
-         validMeasurement(s.tempHigh, s.humHigh) &&
+         validMeasurement(s.tempHigh, s.humHigh) && std::isfinite(s.tempLow) && s.tempLow >= -40 && s.tempLow < s.tempHigh &&
          std::isfinite(s.tempHysteresis) && s.tempHysteresis > 0 && s.tempHysteresis <= 10 &&
          std::isfinite(s.humHysteresis) && s.humHysteresis > 0 && s.humHysteresis <= 20;
 }

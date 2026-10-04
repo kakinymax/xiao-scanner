@@ -6,12 +6,12 @@ async function runBenchmark() {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
 
-  // ファイルパスを絶対パスで指定
-  const filePath = `file://${path.resolve(__dirname, '../../index.html')}`;
+  // 保管した旧HTMLを、テキスト拡張子でもHTMLとして読み込む
+  const archivePath = path.resolve(__dirname, '../../archives/web-scanner-2026-10-04/index.html.txt');
 
   // 現在の最適化済みコードでのパフォーマンス計測
   console.log("Running benchmark on OPTIMIZED code...");
-  await page.goto(filePath);
+  await page.setContent(fs.readFileSync(archivePath, 'utf8'));
 
   // カメラやビデオのモックを設定して、tick関数を強制的に回す準備
   const optimizedResult = await page.evaluate(async () => {
